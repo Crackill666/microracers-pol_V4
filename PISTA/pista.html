@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>MicroRacers POL — Pista (Móvil)</title>
+<style>
+  :root{
+    --bg:#0b0e14;
+    --panel:#111622;
+    --panel2:#151b2a;
+    --text:#e6e6e6;
+    --muted:#aab0c0;
+    --border:#2c3140;
+    --track:#3a3f4f;
+    --wall:#a01818;
+    --car:#ffd84d;
+    --ok:#37d67a;
+    --warn:#ffcc00;
+    --bad:#ff4d4d;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background: radial-gradient(circle at top, #121a2a, #05070d 60%);
+    color:var(--text);
+    font-family: Arial, Helvetica, sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:10px 10px 0;
+    height:100vh;
+    overflow:hidden;
+  }
+  h1{ margin:8px 0 8px; font-size:18px; font-weight:900; text-align:center; }
+  #hud{
+    display:flex; gap:12px; flex-wrap:wrap;
+    align-items:center; justify-content:center;
+    margin:0 0 10px;
+    font-size:13px;
+    padding:8px 12px;
+    background:rgba(17,22,34,.92);
+    border:1px solid var(--border);
+    border-radius:12px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.35);
+  }
+  #wrap{
+    position:relative;
+    width:min(980px, 98vw);
+    /* height will be set by JS to fit viewport */
+    border:1px solid var(--border);
+    border-radius:16px;
+    overflow:hidden;
+    background:rgba(21,27,42,.95);
+    box-shadow: 0 16px 40px rgba(0,0,0,.42);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  canvas{
+    display:block;
+    width:auto;
+    height:auto;
+    max-width:100%;
+    max-height:100%;
+    background:var(--panel2);
+    image-rendering:pixelated;
+    touch-action:none;
+  }
+  #msg{
+    margin:8px 0 8px;
+    font-size:13px;
+    min-height:18px;
+    color:var(--muted);
+    text-align:center;
+  }
+  #overlay{
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:14px;
+    background:rgba(0,0,0,.72);
+    z-index:50;
+  }
+  #overlay .box{
+    width:min(820px, 96vw);
+    background:#0f1422;
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:14px 14px 12px;
+  }
+  #overlay .title{ font-weight:900; color:var(--bad); margin-bottom:6px; }
+  #overlay pre{
+    margin:0;
+    white-space:pre-wrap;
+    word-break:break-word;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+    font-size:12px;
+    color:#eaeaea;
+    opacity:.96;
+    line-height:1.35;
+  }
+
+  /* Mobile controls */
+  #controls{
+    position:fixed;
+    left:0; right:0; bottom:0;
+    padding:10px 10px 14px;
+    display:flex;
+    gap:10px;
+    justify-content:space-between;
+    align-items:flex-end;
+    pointer-events:none; /* enable only on buttons */
+  }
+  .pad{
+    display:flex;
+    gap:10px;
+    pointer-events:none;
+  }
+  .btn{
+    pointer-events:auto;
+    width:72px;
+    height:72px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(17,22,34,.75);
+    backdrop-filter: blur(6px);
+    color:var(--text);
+    font-weight:800;
+    font-size:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action:none;
+    box-shadow: 0 10px 25px rgba(0,0,0,.35);
+  }
+  .btn:active{ transform: scale(0.98); }
+  .btn.small{ width:54px; height:54px; border-radius:14px; font-size:12px; }
+  .btn.green{ border-color: rgba(55,214,122,.45); }
+  .btn.red{ border-color: rgba(255,77,77,.45); }
+  .btn.yellow{ border-color: rgba(255,204,0,.45); }
+
+  /* Helpful note for desktop */
+  #hint{
+    margin:0 0 80px;
+    font-size:12px;
+    color:var(--muted);
+    opacity:.9;
+    text-align:center;
+  }
+
+  @media (min-width: 900px){
+    #controls{ bottom:18px; }
+    #hint{ margin-bottom: 110px; }
+  }
+
+  /* --- Embed mode (inside game modal) --- */
+  body.embed{ padding:0; height:100vh; overflow:hidden; }
+  body.embed h1{ display:none; }
+  body.embed #hint{ display:none; }
+  body.embed #hud{ margin:8px 10px 6px; max-width:none; }
+  body.embed #wrap{
+    width: 100vw;
+    /* height is handled by JS fitCanvasToViewport() */
+    border-left:0; border-right:0;
+    border-radius:0;
+    box-shadow:none;
+  }
+
+</style>
+</head>
+<body>
+
+<h1>MicroRacers POL — Time Trial (Móvil)</h1>
+
+<div id="hud">
+  <div>🚗 Auto: <b>#<span id="carId">—</span></b></div>
+  <div>🎯 Objetivo: <b>≤ <span id="goal">35</span>s</b></div>
+  <div>⏱ Tiempo: <b><span id="time">0.00</span>s</b></div>
+  <div>🧱 Choques: <b><span id="hits">0</span></b></div>
+  <div>🔄 <b><span id="resetTip">Reset</span></b></div>
+</div>
+
+<div id="wrap">
+  <canvas id="game"></canvas>
+
+  <div id="overlay">
+    <div class="box">
+      <div class="title">No pude cargar / interpretar el mapa</div>
+      <pre id="overlayText"></pre>
+    </div>
+  </div>
+</div>
+
+<div id="msg"></div>
+<div id="hint">Móvil: usá los botones · PC: WASD/flechas · R=Retroceder · Enter=Retry · Entrá a START para iniciar · Llegá a FINISH</div>
+
+<!-- On-screen controls -->
+<div id="controls" aria-label="Controles">
+  <div class="pad">
+    <div class="btn" id="btnLeft">◀</div>
+    <div class="btn" id="btnRight">▶</div>
+  </div>
+
+  <div class="pad">
+    <div class="btn red" id="btnBrake">FRENO</div>
+    <div class="btn green" id="btnGas">GAS</div>
+  </div>
+
+  <div class="pad">
+    <div class="btn small yellow" id="btnReverse">R</div>
+    <div class="btn small" id="btnRetry">RETRY</div>
+  </div>
+</div>
+
+<script>
+  const qs = new URLSearchParams(location.search);
+  const EMBED = (qs.get('embed')==='1');
+  if(EMBED) document.body.classList.add('embed');
+
+  // Read car id + objective from query
+  const CAR_ID = qs.get('car') || '';
+  const LIMIT_SEC = Number(qs.get('limit') || 35);
+  const elCarId = document.getElementById('carId');
+  const elGoal = document.getElementById('goal');
+  if(elCarId) elCarId.textContent = CAR_ID ? String(CAR_ID) : '—';
+  if(elGoal) elGoal.textContent = String(Number.isFinite(LIMIT_SEC) ? LIMIT_SEC : 35);
+
+  function pointerToCanvas(clientX, clientY){
+    const wrap = document.getElementById('wrap');
+    const r = wrap.getBoundingClientRect();
+    // account for canvas offset inside wrap + scale
+    const localX = clientX - r.left - (parseFloat(canvas.style.left)||0);
+    const localY = clientY - r.top  - (parseFloat(canvas.style.top)||0);
+    return { x: localX / (window.viewScale || 1), y: localY / (window.viewScale || 1) };
+  }
+
+/* =========================
+   CONFIG
+========================= */
+const TILE = 32;
+const MAP_URL = "./pista.json";
+
+/* =========================
+   DOM
+========================= */
+const canvas = document.getElementById("game");
+const wrap = document.getElementById("wrap");
+const ctx = canvas.getContext("2d");
+const elTime = document.getElementById("time");
+const elHits = document.getElementById("hits");
+const elMsg = document.getElementById("msg");
+const overlay = document.getElementById("overlay");
+const overlayText = document.getElementById("overlayText");
+
+/* =========================
+   FIT-TO-SCREEN (IMPORTANT)
+   - keeps the whole track visible (desktop + mobile)
+   - prevents the car from "disappearing" under the fold
+========================= */
+const elHud = document.getElementById("hud");
+const elControls = document.getElementById("controls");
+const elHint = document.getElementById("hint");
+
+function fitCanvasToViewport(){
+  if (!canvas.width || !canvas.height) return;
+
+  const hudH = elHud ? elHud.getBoundingClientRect().height : 0;
+  const msgH = elMsg ? elMsg.getBoundingClientRect().height : 0;
+  const hintH = elHint ? elHint.getBoundingClientRect().height : 0;
+  const controlsH = elControls ? elControls.getBoundingClientRect().height : 0;
+
+  const padding = EMBED ? 8 : 18;
+  const extraSafe = 12;
+
+  let availableH = window.innerHeight - hudH - msgH - hintH - controlsH - padding - extraSafe;
+  availableH = Math.max(220, availableH);
+
+  wrap.style.height = Math.floor(availableH) + "px";
+
+  const wrapW = wrap.getBoundingClientRect().width;
+  const wrapH = availableH;
+
+  const aspect = canvas.width / canvas.height;
+
+  let drawW = wrapW;
+  let drawH = drawW / aspect;
+
+  if (drawH > wrapH){
+    drawH = wrapH;
+    drawW = drawH * aspect;
+  }
+
+  canvas.style.width = Math.floor(drawW) + "px";
+  canvas.style.height = Math.floor(drawH) + "px";
+}
+
+window.addEventListener("resize", () => fitCanvasToViewport(), { passive:true });
+window.addEventListener("orientationchange", () => setTimeout(fitCanvasToViewport, 50), { passive:true });
+
+/* Mobile buttons */
+
+const btnLeft = document.getElementById("btnLeft");
+const btnRight = document.getElementById("btnRight");
+const btnGas = document.getElementById("btnGas");
+const btnBrake = document.getElementById("btnBrake");
+const btnReverse = document.getElementById("btnReverse");
+const btnRetry = document.getElementById("btnRetry");
+
+/* =========================
+   STATE
+========================= */
+let map = null;
+let track = null;
+let walls = null;
+let objLayer = null;
+
+let startObj = null;
+let finishObj = null;
+
+let hits = 0;
+let startTime = null;
+let finished = false;
+
+const car = { x:0, y:0, angle:0, speed:0, r:6 };
+const keys = {};
+
+/* =========================
+   INPUT (keyboard)
+========================= */
+addEventListener("keydown", (e) => {
+  keys[e.key.toLowerCase()] = true;
+  // R = Reverse (retroceder). Retry/Reset is on Enter.
+  if (e.key === "Enter") resetRace();
+});
+addEventListener("keyup", (e) => keys[e.key.toLowerCase()] = false);
+
+/* =========================
+   INPUT (touch buttons)
+========================= */
+function bindHold(btn, keyName){
+  const on = (ev) => { ev.preventDefault(); keys[keyName] = true; };
+  const off = (ev) => { ev.preventDefault(); keys[keyName] = false; };
+
+  btn.addEventListener("pointerdown", on);
+  btn.addEventListener("pointerup", off);
+  btn.addEventListener("pointercancel", off);
+  btn.addEventListener("pointerleave", off);
+}
+bindHold(btnLeft, "left");
+bindHold(btnRight, "right");
+bindHold(btnGas, "up");
+bindHold(btnBrake, "down");
+
+// R button = reverse (hold)
+bindHold(btnReverse, "rev");
+
+// RETRY button = reset
+btnRetry.addEventListener("pointerdown", (ev) => { ev.preventDefault(); resetRace(); });
+
+
+/* Prevent page scroll on touch */
+document.addEventListener("touchmove", (e) => e.preventDefault(), { passive:false });
+
+/* =========================
+   HELPERS
+========================= */
+const norm = (s) => (s || "").trim();
+const normU = (s) => norm(s).toUpperCase();
+const normL = (s) => norm(s).toLowerCase();
+
+function showError(title, details){
+  overlay.style.display = "flex";
+  overlayText.textContent =
+`${title}
+
+Detalles:
+${details}
+
+Checklist:
+- pista.html y pista.json en la misma carpeta PISTA
+- Abrí desde servidor local (Live Server)
+- Capas tilelayer: Track y Walls
+- Capa objectgroup con START y FINISH
+`;
+}
+
+function findLayerByName(type, nameLower){
+  return (map.layers || []).find(l => l.type === type && normL(l.name) === nameLower) || null;
+}
+
+function insideObj(obj, x = car.x, y = car.y){
+  if (!obj) return false;
+  return (x > obj.x && x < obj.x + obj.width && y > obj.y && y < obj.y + obj.height);
+}
+
+function gidAt(layer, tx, ty){
+  if (!layer || !Array.isArray(layer.data)) return 0;
+  if (tx < 0 || ty < 0 || tx >= map.width || ty >= map.height) return 0;
+  return layer.data[ty * map.width + tx] || 0;
+}
+
+function carHitsWalls(nx, ny){
+  const r = car.r;
+  const pts = [
+    [nx + r, ny],
+    [nx - r, ny],
+    [nx, ny + r],
+    [nx, ny - r],
+  ];
+  for (const [px, py] of pts){
+    const tx = Math.floor(px / TILE);
+    const ty = Math.floor(py / TILE);
+    if (gidAt(walls, tx, ty) !== 0) return true;
+  }
+  return false;
+}
+
+function drawTileLayer(layer, fillStyle){
+  if (!layer || !Array.isArray(layer.data)) return;
+  ctx.fillStyle = fillStyle;
+  const w = map.width;
+  for (let i = 0; i < layer.data.length; i++){
+    if (layer.data[i] === 0) continue;
+    const x = (i % w) * TILE;
+    const y = Math.floor(i / w) * TILE;
+    ctx.fillRect(x, y, TILE, TILE);
+  }
+}
+
+function drawObjectRect(obj, strokeStyle){
+  if (!obj) return;
+  ctx.strokeStyle = strokeStyle;
+  ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
+}
+
+function updateHUD(){
+  if (startTime && !finished){
+    elTime.textContent = ((performance.now() - startTime)/1000).toFixed(2);
+  } else if (!startTime){
+    elTime.textContent = "0.00";
+  }
+  elHits.textContent = String(hits);
+}
+
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+/* =========================
+   INIT
+========================= */
+(async function init(){
+  try{
+    const res = await fetch(MAP_URL, {cache:"no-store"});
+    if (!res.ok) throw new Error(`HTTP ${res.status} cargando ${MAP_URL}`);
+    map = await res.json();
+
+    // Set internal resolution from map size
+    canvas.width = (map.width || 30) * (map.tilewidth || TILE);
+    canvas.height = (map.height || 20) * (map.tileheight || TILE);
+
+    // Ensure it fits on screen
+    fitCanvasToViewport();
+
+    track = findLayerByName("tilelayer", "track");
+    walls = findLayerByName("tilelayer", "walls");
+    objLayer = (map.layers || []).find(l => l.type === "objectgroup") || null;
+
+    if (!track) throw new Error("No encontré una capa tilelayer llamada 'Track'.");
+    if (!walls) throw new Error("No encontré una capa tilelayer llamada 'Walls'.");
+    if (!objLayer) throw new Error("No encontré una capa de objetos (objectgroup).");
+
+    const objs = objLayer.objects || [];
+    startObj = objs.find(o => normU(o.name) === "START") || null;
+    finishObj = objs.find(o => normU(o.name) === "FINISH") || null;
+
+    if (!startObj || !finishObj){
+      throw new Error("Falta START o FINISH en la capa de objetos.");
+    }
+
+    resetRace();
+    elMsg.textContent = `👉 Entrá a START para iniciar el cronómetro. Objetivo: ≤ ${Number.isFinite(LIMIT_SEC)?LIMIT_SEC:35}s.`;
+    requestAnimationFrame(loop);
+  } catch(err){
+    showError("Error cargando el mapa", String(err && err.message ? err.message : err));
+    console.error(err);
+  }
+})();
+
+/* =========================
+   PARENT INTEGRATION (game.html)
+   - The parent can control this iframe without reloading
+   - This also fixes "only works once" when the modal closes/reopens
+========================= */
+function postToGame(payload){
+  try{
+    // When opened from game.html as a new tab/window
+    if(window.opener && !window.opener.closed){
+      window.opener.postMessage(payload, "*");
+      return;
+    }
+  }catch(e){}
+  try{
+    // Fallback (embed / same-window)
+    window.parent && window.parent.postMessage(payload, "*");
+  }catch(e){}
+}
+
+// Notify parent that the track UI is ready
+postToGame({ type:"MICRORACERS_TIME_TRIAL_READY", car: CAR_ID, limit: LIMIT_SEC });
+
+// Allow parent to control the run cycle
+window.addEventListener("message", (ev) => {
+  const d = ev.data || {};
+  if (!d || typeof d !== "object") return;
+
+  // Parent can request a clean reset
+  if (d.type === "MICRORACERS_TIME_TRIAL_RESET"){
+    resetRace();
+    return;
+  }
+
+  // Parent can request to start immediately (teleport to START)
+  if (d.type === "MICRORACERS_TIME_TRIAL_START"){
+    if (startObj){
+      car.x = startObj.x + startObj.width/2;
+      car.y = startObj.y + startObj.height/2;
+      car.speed = 0;
+      car.angle = 0;
+      startTime = performance.now();
+      finished = false;
+      window.__mrSentResult = false;
+      elMsg.textContent = "⏱️ Iniciado. Llegá a FINISH.";
+      updateHUD();
+    }
+    return;
+  }
+
+  // Parent can toggle input (cooldown or blocking UI)
+  if (d.type === "MICRORACERS_TIME_TRIAL_INPUT"){
+    const enabled = !!d.enabled;
+    window.__mrInputEnabled = enabled;
+    if (!enabled){
+      // clear held keys so the car doesn't keep moving
+      for (const k in keys) keys[k] = false;
+    }
+    return;
+  }
+});
+
+// If this iframe gets hidden (modal closed), stop movement and notify parent
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden){
+    for (const k in keys) keys[k] = false;
+    postToGame({ type:"MICRORACERS_TIME_TRIAL_HIDDEN" });
+  }
+});
+
+function resetRace(){
+  if (!startObj) return;
+  fitCanvasToViewport();
+  car.x = startObj.x + startObj.width/2;
+  car.y = startObj.y + startObj.height/2;
+  car.angle = 0;
+  car.speed = 0;
+
+  hits = 0;
+  startTime = null;
+  finished = false;
+  window.__mrSentResult = false;
+  updateHUD();
+  elMsg.textContent = `👉 Entrá a START para iniciar el cronómetro. Objetivo: ≤ ${Number.isFinite(LIMIT_SEC)?LIMIT_SEC:35}s.`;
+}
+
+/* =========================
+   LOOP
+========================= */
+function loop(){
+  update();
+  render();
+  requestAnimationFrame(loop);
+}
+
+function update(){
+  if (!map || finished) return;
+
+  // Read input (keyboard + mobile buttons)
+  if (window.__mrInputEnabled === false) {
+    car.speed *= 0.95;
+    updateHUD();
+    return;
+  }
+
+  const up = keys["arrowup"] || keys["w"] || keys["up"];
+  const down = keys["arrowdown"] || keys["s"] || keys["down"]; // brake
+  const rev = keys["r"] || keys["rev"]; // reverse (R / button)
+  const left = keys["arrowleft"] || keys["a"] || keys["left"];
+  const right = keys["arrowright"] || keys["d"] || keys["right"];
+
+  // Control tuning for mobile
+  if (up) car.speed += 0.11;
+  if (down) car.speed -= 0.14; // brake
+  if (rev) car.speed -= 0.18; // reverse
+  if (left) car.angle -= 0.060;
+  if (right) car.angle += 0.060;
+
+  car.speed *= 0.982;
+  car.speed = clamp(car.speed, -2.2, 4.3);
+
+  const nx = car.x + Math.cos(car.angle) * car.speed;
+  const ny = car.y + Math.sin(car.angle) * car.speed;
+
+  if (!carHitsWalls(nx, ny)){
+    car.x = nx; car.y = ny;
+  } else {
+    hits++;
+    car.speed *= -0.30;
+  }
+
+  // Start timer when entering START (only once)
+  if (!startTime && insideObj(startObj)){
+    startTime = performance.now();
+    elMsg.textContent = "⏱️ Iniciado. Llegá a FINISH.";
+  }
+
+  // Finish when timer started and entering FINISH
+  if (startTime && insideObj(finishObj)){
+    finished = true;
+    const t = ((performance.now() - startTime)/1000).toFixed(2);
+    elMsg.textContent = `🏁 Finalizaste — Tiempo: ${t}s (objetivo ≤ ${Number.isFinite(LIMIT_SEC)?LIMIT_SEC:35}s) — Choques: ${hits}\nSi no se cierra solo, volvé a la pestaña del juego.`;
+
+    // ✅ Notify parent (game.html) — UX gate only (no on-chain effect)
+    if(!window.__mrSentResult){
+      window.__mrSentResult = true;
+      try{
+        postToGame({
+          type: "MICRORACERS_TIME_TRIAL_DONE",
+          car: CAR_ID,
+          limit: LIMIT_SEC,
+          timeSec: Number(t),
+          hits: hits
+        });
+
+        // Try to auto-close and return control to the game tab
+        setTimeout(()=>{ try{ window.close(); }catch(e){} }, 600);
+      }catch(e){}
+    }
+  }
+
+  updateHUD();
+}
+
+function render(){
+  if (!map) return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Draw layers (solid colors; no TSX needed)
+  drawTileLayer(track, getCss("--track"));
+  drawTileLayer(walls, getCss("--wall"));
+
+  // Draw start/finish outlines (debug)
+  ctx.save();
+  ctx.lineWidth = 2;
+  drawObjectRect(startObj, getCss("--ok"));
+  drawObjectRect(finishObj, getCss("--warn"));
+  ctx.restore();
+
+  // Draw car
+  ctx.save();
+  ctx.translate(car.x, car.y);
+  ctx.rotate(car.angle);
+  ctx.fillStyle = getCss("--car");
+  ctx.fillRect(-7, -4, 14, 8);
+  ctx.restore();
+}
+
+function getCss(varName){
+  return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+}
+</script>
+</body>
+</html>

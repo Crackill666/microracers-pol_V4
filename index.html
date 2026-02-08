@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MicroRacers POL — On-Chain Racing</title>
+
+  <!-- Racing modern font -->
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --text:#f3f4f6;
+      --muted:rgba(203,213,225,0.75);
+      --red:#e11d48;
+      --orange:#f97316;
+      --border:rgba(255,255,255,0.12);
+      --glass:rgba(10,14,20,0.55);
+      --shadow:0 20px 60px rgba(0,0,0,0.6);
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family:'Oswald', system-ui, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      overflow-x:hidden;
+    }
+
+    a{text-decoration:none;color:inherit}
+    button{font-family:inherit}
+
+    /* ===== HEADER ===== */
+    header{
+      position:fixed;
+      top:0;
+      left:0;
+      width:100%;
+      z-index:20;
+      backdrop-filter: blur(8px);
+      background:linear-gradient(
+        180deg,
+        rgba(0,0,0,0.55),
+        rgba(0,0,0,0.15)
+      );
+      border-bottom:1px solid rgba(255,255,255,0.08);
+    }
+
+    .nav{
+      max-width:1200px;
+      margin:auto;
+      padding:14px 22px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .logo{
+      font-weight:700;
+      letter-spacing:1px;
+      font-size:20px;
+    }
+
+    .nav-links{
+      display:flex;
+      align-items:center;
+      gap:22px;
+      font-size:14px;
+      letter-spacing:1px;
+      text-transform:uppercase;
+    }
+
+    .polygon{
+      font-size:11px;
+      opacity:.7;
+      border:1px solid var(--border);
+      padding:4px 8px;
+      border-radius:999px;
+    }
+
+    /* ===== HERO ===== */
+    .hero{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      background:
+        linear-gradient(
+          180deg,
+          rgba(0,0,0,0.65),
+          rgba(0,0,0,0.25) 35%,
+          rgba(0,0,0,0.85)
+        ),
+        url("hero-bg.jpg") center/cover no-repeat;
+      padding:120px 20px 80px;
+    }
+
+    .hero-content{
+      max-width:800px;
+    }
+
+    .hero h1{
+      font-size:clamp(42px,7vw,84px);
+      margin:0;
+      letter-spacing:4px;
+      text-transform:uppercase;
+      text-shadow:0 12px 40px rgba(0,0,0,0.8);
+    }
+
+    .hero p{
+      margin:18px auto 0;
+      max-width:620px;
+      font-size:16px;
+      color:rgba(255,255,255,0.9);
+      letter-spacing:1px;
+    }
+
+    .cta{
+      margin-top:34px;
+      display:flex;
+      justify-content:center;
+      gap:16px;
+      flex-wrap:wrap;
+    }
+
+    .btn{
+      padding:14px 28px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:var(--glass);
+      color:white;
+      font-size:14px;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      cursor:pointer;
+      transition:transform .15s ease, background .15s ease;
+      box-shadow:var(--shadow);
+    }
+
+    .btn:hover{transform:translateY(-2px)}
+
+    .btn-primary{
+      background:linear-gradient(135deg,var(--red),var(--orange));
+      border:none;
+    }
+
+    /* ===== HOW IT WORKS ===== */
+    .section{
+      max-width:1100px;
+      margin:auto;
+      padding:80px 20px;
+    }
+
+    .section h2{
+      text-align:center;
+      font-size:28px;
+      letter-spacing:2px;
+      text-transform:uppercase;
+      margin-bottom:14px;
+    }
+
+    .section p.lead{
+      text-align:center;
+      color:var(--muted);
+      max-width:680px;
+      margin:0 auto 40px;
+      font-size:14px;
+    }
+
+    .steps{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+      gap:22px;
+    }
+
+    .step{
+      background:rgba(255,255,255,0.05);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:24px;
+      box-shadow:var(--shadow);
+    }
+
+    .step span{
+      display:inline-block;
+      background:linear-gradient(135deg,var(--red),var(--orange));
+      color:black;
+      font-weight:700;
+      padding:6px 12px;
+      border-radius:999px;
+      margin-bottom:12px;
+      font-size:12px;
+    }
+
+    .step h3{
+      margin:0 0 8px;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      font-size:16px;
+    }
+
+    .step p{
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.6;
+    }
+
+    /* ===== FOOTER ===== */
+    footer{
+      border-top:1px solid rgba(255,255,255,0.08);
+      text-align:center;
+      padding:28px 20px;
+      font-size:12px;
+      color:rgba(255,255,255,0.6);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="nav">
+      <div class="logo">MicroRacers POL</div>
+      <div class="nav-links">
+        <a href="game.html">Play</a>
+        <a href="whitepaper.html">Whitepaper</a>
+        <span class="polygon">Powered by Polygon</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Race. Win. Retire.</h1>
+      <p>
+        A simple on-chain racing game with limited cars and real rewards.
+      </p>
+
+      <div class="cta">
+        <a href="game.html"><button class="btn btn-primary">Play Now</button></a>
+        <button class="btn" onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})">
+          How it works
+        </button>
+        <a href="whitepaper.html"><button class="btn">Whitepaper</button></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" id="how">
+    <h2>How it works</h2>
+    <p class="lead">
+      Three simple steps. Every car has limits. Every race matters.
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <span>1</span>
+        <h3>Mint a Car</h3>
+        <p>
+          Each car is an NFT with a limited number of races and a capped reward potential.
+        </p>
+      </div>
+
+      <div class="step">
+        <span>2</span>
+        <h3>Race On-Chain</h3>
+        <p>
+          Run races directly on-chain. Results and rewards are handled by the smart contract.
+        </p>
+      </div>
+
+      <div class="step">
+        <span>3</span>
+        <h3>Earn & Retire</h3>
+        <p>
+          Once a car reaches its limits, it is permanently retired from racing.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    © MicroRacers POL — On-chain racing game
+  </footer>
+
+</body>
+</html>
