@@ -1,0 +1,2670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MicroRacers POL — Play</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --text:#f3f4f6;
+      --muted:rgba(203,213,225,0.75);
+      --border:rgba(255,255,255,0.12);
+      --glass:rgba(10,14,20,0.55);
+      --shadow:0 18px 55px rgba(0,0,0,0.55);
+
+      --red:#e11d48;
+      --orange:#f97316;
+      --green:#22c55e;
+      --yellow:#facc15;
+      --bad:#ef4444;
+      --disabledBg: rgba(148,163,184,0.18);
+      --disabledBorder: rgba(148,163,184,0.30);
+      --disabledText: rgba(226,232,240,0.72);
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family:'Oswald', system-ui, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      overflow-x:hidden;
+    }
+
+    a{text-decoration:none;color:inherit}
+    button{font-family:inherit}
+
+    /* ===== HEADER (consistent) ===== */
+    header{
+      position:fixed;
+      top:0; left:0; width:100%;
+      z-index:20;
+      backdrop-filter: blur(8px);
+      background:linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.15));
+      border-bottom:1px solid rgba(255,255,255,0.08);
+    }
+    .nav{
+      max-width:1200px;
+      margin:auto;
+      padding:14px 22px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 14px;
+    }
+    .logo{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  line-height:1;
+  text-decoration:none;
+  white-space: nowrap;
+}
+.logo-img{
+  height:56px;
+  width:auto;
+  max-width: calc(100vw - 260px);
+  object-fit:contain;
+  transition: filter .18s ease, transform .18s ease, opacity .18s ease;
+}
+.logo:hover .logo-img{
+  filter: drop-shadow(0 0 10px rgba(120, 220, 255, .35)) drop-shadow(0 0 22px rgba(120, 220, 255, .18));
+  transform: translateY(-1px);
+}
+.logo:active .logo-img{
+  transform: translateY(0px) scale(.99);
+  opacity:.95;
+}
+@media (max-width: 640px){
+  .logo-img{
+    height:44px;
+    max-width: calc(100vw - 170px);
+  }
+}
+    .nav-links{
+      display:flex;
+      align-items:center;
+      gap:18px;
+      font-size:14px;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      flex-wrap: wrap;
+      justify-content:flex-end;
+    }
+    .polygon{
+      font-size:11px;
+      opacity:.7;
+      border:1px solid var(--border);
+      padding:4px 8px;
+      border-radius:999px;
+    }
+
+    /* ===== PAGE WRAP ===== */
+    .page{
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 86px 16px 28px; /* header space */
+    }
+
+    /* ===== SEMI HERO ===== */
+    .mini-hero{
+      border: 1px solid rgba(255,255,255,0.10);
+      background:
+        linear-gradient(135deg, rgba(225,29,72,0.18), rgba(249,115,22,0.10)),
+        linear-gradient(180deg, rgba(0,0,0,0.0), rgba(0,0,0,0.25));
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 18px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 14px;
+      overflow:hidden;
+      position:relative;
+    }
+    .mini-hero::after{
+      content:"";
+      position:absolute;
+      left:-30px;
+      top:0;
+      width: 220px;
+      height: 100%;
+      background: repeating-linear-gradient(
+        45deg,
+        rgba(255,255,255,0.10) 0px,
+        rgba(255,255,255,0.10) 10px,
+        rgba(0,0,0,0.0) 10px,
+        rgba(0,0,0,0.0) 20px
+      );
+      opacity:0.14;
+      transform: skewX(-12deg);
+      pointer-events:none;
+    }
+    .mh-left h1{
+      margin:0;
+      font-size: 22px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .mh-left p{
+      margin:6px 0 0 0;
+      color: rgba(255,255,255,0.85);
+      letter-spacing: 0.6px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .mh-right{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content:flex-end;
+    }
+
+    .btn{
+      padding: 11px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.18);
+      color: rgba(255,255,255,0.92);
+      font-size: 13px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor:pointer;
+      transition: transform .12s ease, filter .12s ease, opacity .12s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      white-space: nowrap;
+    }
+    .btn:hover{transform: translateY(-1px)}
+    .btn.primary{
+      background: linear-gradient(135deg, var(--red), var(--orange));
+      border: none;
+      color:#fff;
+    }
+    .btn:disabled{
+      opacity:1;
+      cursor:not-allowed;
+      transform:none;
+      filter:none;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    /* Make disabled primary button clearly grey */
+    .btn.primary:disabled{
+      background: var(--disabledBg);
+      border: 1px solid var(--disabledBorder);
+      color: var(--disabledText);
+    }
+
+    /* ===== MAIN LAYOUT ===== */
+    .grid{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.35fr 0.85fr;
+      gap: 14px;
+      align-items:start;
+    }
+
+    .panel{
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+      border-radius: 22px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+      overflow:hidden;
+    }
+
+    .panel-head{
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.15);
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap: 8px;
+    }
+
+    .panel-head h2{
+      margin:0;
+      font-size: 16px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .panel-head .sub{
+      margin:0;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.6px;
+    }
+
+    .panel-body{
+      padding: 12px;
+    }
+
+    /* ===== GARAGE GRID ===== */
+    .garage-wrap{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+
+
+.garage-section{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+}
+.garage-section-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 8px;
+  padding: 2px 2px 0 2px;
+}
+.garage-section-title{
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.86);
+}
+.garage-section-title.desguace{
+  color: rgba(255,255,255,0.82);
+}
+
+/* split garage panels (two grids stacked) */
+.garage-grid.garage-grid-split{
+  max-height: 56vh;
+}
+
+@media (max-width: 520px){
+  .garage-grid.garage-grid-split{
+    max-height: 60vh;
+  }
+}
+
+
+
+    .garage-grid{
+      max-height: 64vh;
+      overflow:auto;
+      padding-right: 6px;
+      scroll-snap-type: y mandatory;
+      scroll-padding: 12px;
+      padding-bottom: 18px;
+
+      display:grid;
+      align-content: start;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+    }
+
+    /* medium display tile: keep aspect ratio 800x1200 = 2:3 */
+    .car-card{
+      scroll-snap-align: start;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.18);
+      overflow:hidden;
+      cursor:pointer;
+      transition: transform .12s ease, border-color .12s ease, background .12s ease, box-shadow .12s ease;
+      position:relative;
+    }
+    .car-card:hover{transform: translateY(-1px)}
+    .car-card.selected{
+      border-color: rgba(249,115,22,0.95);
+      background: rgba(249,115,22,0.14);
+      box-shadow: 0 0 0 2px rgba(249,115,22,0.25), 0 18px 55px rgba(0,0,0,0.60);
+    }
+
+
+/* ===== RETIRED RIBBON (Garage overlay) ===== */
+.car-card.is-retired{
+  filter: saturate(0.78) brightness(0.86);
+}
+.car-card.is-retired:hover{transform:none}
+
+.retired-ribbon{
+  position:absolute;
+  top:50%;
+  left:-30%;
+  right:auto;
+  width:160%;
+  text-align:center;
+  padding: 14px 0;
+  font-weight: 900;
+  letter-spacing: 1.6px;
+  font-size: 18px;
+  color:#ff2b2b;
+  text-transform: uppercase;
+  border: 1px solid rgba(0,0,0,0.78);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.58);
+  z-index: 6;
+  background: repeating-linear-gradient(
+    45deg,
+    #facc15 0px,
+    #facc15 12px,
+    #111827 12px,
+    #111827 24px
+  );
+  /* Readability over busy NFT art */
+  text-shadow: 0 3px 12px rgba(0,0,0,0.88);
+  -webkit-text-stroke: 1px rgba(0,0,0,0.88);
+  transform: translateY(-50%) rotate(-18deg);
+  pointer-events:none;
+}
+
+    .selected-badge{
+      position:absolute;
+      z-index: 7;
+      top:10px; left:10px;
+      font-size: 11px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.9);
+      opacity:0;
+      transform: translateY(-2px);
+      transition: opacity .12s ease, transform .12s ease;
+      pointer-events:none;
+    }
+    .car-card.selected .selected-badge{
+      opacity:1;
+      transform: translateY(0);
+    }
+
+    .car-art{
+      width:100%;
+      aspect-ratio: 2 / 3; /* 800x1200 */
+      background: rgba(255,255,255,0.06);
+      display:grid;
+      place-items:center;
+      color: rgba(255,255,255,0.60);
+      font-size: 12px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+    .car-art img{
+      width:100%;
+      height:100%;
+      object-fit: contain;
+      background: rgba(0,0,0,0.35);
+      display:block;
+    }
+
+    .car-meta{
+      padding: 6px 7px 7px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 8px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.18);
+    }
+
+    .car-id{
+      font-size: 13px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .chip{
+      font-size: 11px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      padding: 5px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.22);
+      color: rgba(255,255,255,0.84);
+      white-space: nowrap;
+    }
+    .chip.active{border-color: rgba(34,197,94,0.35)}
+    .chip.retired{border-color: rgba(239,68,68,0.35); opacity:0.9}
+
+    /* ===== RIGHT SIDE: DETAILS + ACTIONS ===== */
+    .stack{
+      display:flex;
+      flex-direction:column;
+      gap: 14px;
+    }
+
+    .status-box{
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(0,0,0,0.20);
+      border: 1px solid rgba(255,255,255,0.10);
+      color: rgba(255,255,255,0.86);
+      font-size: 13px;
+      line-height: 1.55;
+      letter-spacing: 0.4px;
+      white-space: pre-wrap;
+    }
+
+    .kv{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .kv-row{
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.18);
+      border-radius: 18px;
+      padding: 12px;
+    }
+
+    .kv-row .k{
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.72);
+    }
+    .kv-row .v{
+      margin-top: 6px;
+      font-size: 14px;
+      letter-spacing: 0.6px;
+      color: rgba(255,255,255,0.92);
+      overflow-wrap:anywhere;
+    }
+
+    .action-row{
+      display:flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn.wide{
+      width:100%;
+      justify-content:center;
+      display:flex;
+    }
+
+    /* ===== POPUP / MODAL ===== */
+    .modal{
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 16px;
+      background: rgba(0,0,0,0.82);
+      backdrop-filter: blur(6px);
+    }
+    .modal.show{display:flex}
+
+    .modal-card{
+      width: min(860px, 100%);
+      /* Ensure action buttons are always reachable on mobile */
+      max-height: 92vh;
+      max-height: 92svh;
+      max-height: 92dvh;
+      display:flex;
+      flex-direction:column;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: linear-gradient(135deg, rgba(225,29,72,0.16), rgba(249,115,22,0.10));
+      box-shadow: 0 22px 70px rgba(0,0,0,0.65);
+      overflow:hidden;
+    }
+
+    .modal-head{
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.30);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 8px;
+    }
+
+    .modal-title{
+      margin:0;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 15px;
+    }
+
+    .modal-close{
+      border:1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.18);
+      color: rgba(255,255,255,0.92);
+      border-radius: 14px;
+      padding: 10px 12px;
+      cursor:pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 12px;
+    }
+
+    .modal-body{
+      padding: 14px;
+      display:grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 14px;
+      align-items:start;
+      background: rgba(0,0,0,0.16);
+      /* Scroll the content area if needed; keep header/footer visible */
+      overflow:auto;
+      flex:1 1 auto;
+    }
+
+    .modal-preview{
+      position: relative; /* enable scrim overlay */
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.26);
+      overflow:hidden;
+    }
+    /* Soft "scrim" to improve text readability over bright NFT art */
+    .modal-preview::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      background: linear-gradient(
+        180deg,
+        rgba(0,0,0,0.58) 0%,
+        rgba(0,0,0,0.18) 38%,
+        rgba(0,0,0,0.58) 100%
+      );
+    }
+
+    .modal-preview .art{
+      width:100%;
+      aspect-ratio: 2/3;
+      display:grid;
+      place-items:center;
+      color: rgba(255,255,255,0.70);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      background: rgba(255,255,255,0.06);
+    }
+    .modal-preview img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+      filter: brightness(0.92) contrast(1.06) saturate(1.02);
+    }
+
+    .modal-info{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+
+    .result-badge{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(6px);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 12px;
+      width: fit-content;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.85);
+    }
+    .dot{
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.55);
+    }
+    .dot.p1{ background: #facc15; }
+    .dot.p2{ background: rgba(203,213,225,0.95); }
+    .dot.p3{ background: #f97316; }
+
+    .big{
+      font-size: 28px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin: 2px 0 0 0;
+      text-shadow: 0 2px 14px rgba(0,0,0,0.85);
+    }
+    .small{
+      margin: 0;
+      color: rgba(255,255,255,0.86);
+      letter-spacing: 0.6px;
+      line-height: 1.6;
+      font-size: 13px;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.80);
+    }
+
+    .modal-grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .mini-box{
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.42);
+      backdrop-filter: blur(6px);
+      padding: 12px;
+    }
+    .mini-box .k{
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.72);
+      text-shadow: 0 2px 10px rgba(0,0,0,0.85);
+    }
+    .mini-box .v{
+      margin-top: 6px;
+      font-size: 14px;
+      letter-spacing: 0.6px;
+      color: rgba(255,255,255,0.92);
+      overflow-wrap:anywhere;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.85);
+    }
+
+    .modal-foot{
+      padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
+      border-top: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.30);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Admin head actions (pool + withdraw) */
+    .head-actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .btn.small{
+      padding: 8px 11px;
+      font-size: 12px;
+      border-radius: 12px;
+    }
+
+    .modal-foot .hint{
+      font-size: 12px;
+      color: rgba(255,255,255,0.72);
+      letter-spacing: 0.4px;
+    }
+
+    /* ===== Mobile friendliness ===== */
+    @media (max-width: 980px){
+      .grid{grid-template-columns: 1fr}
+      .garage-grid{max-height: 56vh}
+    }
+
+    @media (max-width: 760px){
+      .modal-body{grid-template-columns: 1fr}
+    }
+
+    @media (max-width: 520px){
+      .nav{padding: 12px 14px}
+      .nav-links{gap: 12px; font-size:13px}
+      .page{padding: 82px 12px 24px}
+      .mini-hero{flex-direction:column; align-items:flex-start}
+      .mh-right{width:100%; justify-content:flex-start}
+      .garage-grid{grid-template-columns: 1fr} /* small phones */
+      .modal-grid{grid-template-columns: 1fr}
+    }
+  
+    /* Portfolio totals (Invested / Earned) */
+    .stats-row{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+      margin-top:12px;
+    }
+    .stat-card{
+      background:linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.18));
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius:16px;
+      padding:12px 14px;
+    }
+    .stat-label{
+      font-size:12px;
+      letter-spacing:0.08em;
+      text-transform:uppercase;
+      color:rgba(255,255,255,0.65);
+      margin-bottom:6px;
+    }
+    .stat-value{
+      font-size:18px;
+      font-weight:800;
+      color:rgba(255,255,255,0.92);
+      line-height:1.2;
+    }
+    .stat-sub{
+      margin-top:6px;
+      font-size:12px;
+      color:rgba(255,255,255,0.55);
+    }
+    @media (max-width: 780px){
+      .stats-row{ grid-template-columns: 1fr; }
+    }
+
+
+    /* ===== Race overlay (Option B) ===== */
+    .race-overlay{
+      position:fixed; inset:0; z-index:1200;
+      display:none;
+      align-items:center; justify-content:center;
+      padding:18px;
+      background: rgba(0,0,0,0.78);
+      backdrop-filter: blur(8px);
+    }
+    .race-overlay.show{ display:flex; }
+    .race-overlay-card{
+      width: min(720px, 100%);
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(10,14,20,0.72);
+      box-shadow: 0 24px 90px rgba(0,0,0,0.55);
+      padding: 18px 18px 14px;
+      overflow:hidden;
+    }
+    .race-overlay-top{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px;
+      margin-bottom: 12px;
+    }
+    .race-overlay-title{
+      font-size: 20px;
+      letter-spacing: 1px;
+      font-weight: 700;
+    }
+    .race-overlay-sub{
+      font-size: 13px;
+      color: rgba(255,255,255,0.72);
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+    .race-chip{
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      letter-spacing: 0.8px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      white-space: nowrap;
+    }
+    .race-track{
+      position:relative;
+      height: 88px;
+      border-radius: 16px;
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    }
+    .race-lane{
+      position:absolute; left:0; right:0; top:50%;
+      height: 2px; transform: translateY(-50%);
+      background: repeating-linear-gradient(90deg, rgba(255,255,255,0.26) 0 18px, rgba(255,255,255,0.0) 18px 36px);
+      opacity: 0.6;
+      animation: laneMove 0.55s linear infinite;
+    }
+    @keyframes laneMove{
+      from{ background-position: 0 0; }
+      to{ background-position: -72px 0; }
+    }
+    .race-car{
+      position:absolute;
+      left: -80px;
+      top: 50%;
+      width: 68px;
+      height: 34px;
+      transform: translateY(-50%);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.22);
+      box-shadow: 0 10px 26px rgba(0,0,0,0.35);
+      animation: carRun 1.05s linear infinite;
+    }
+    .race-car::before, .race-car::after{
+      content:"";
+      position:absolute; bottom:-8px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+    .race-car::before{ left: 10px; }
+    .race-car::after{ right: 10px; }
+    @keyframes carRun{
+      from{ left: -80px; }
+      to{ left: calc(100% + 80px); }
+    }
+    .race-overlay.rarity-common .race-car{ box-shadow: 0 10px 26px rgba(0,0,0,0.35), 0 0 0 rgba(0,0,0,0); }
+    .race-overlay.rarity-rare .race-car{ box-shadow: 0 10px 26px rgba(0,0,0,0.35), 0 0 28px rgba(56,189,248,0.35); }
+    .race-overlay.rarity-epic .race-car{ box-shadow: 0 10px 26px rgba(0,0,0,0.35), 0 0 34px rgba(244,114,182,0.38); }
+    .race-overlay.rarity-rare .race-car{ animation-duration: 0.95s; }
+    .race-overlay.rarity-epic .race-car{ animation-duration: 0.85s; }
+
+    /* ===== Garage differentiation + taller split garages (+20%) ===== */
+    .garage-grid-split{ max-height: 56vh; } /* was 28vh */
+    @media (max-width: 520px){
+      .garage-grid-split{ max-height: 60vh; } /* was 30vh */
+    }
+    .garage-section.active{
+      border: 1px solid rgba(34,197,94,0.18);
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.08) inset, 0 12px 40px rgba(0,0,0,0.25);
+      border-radius: 18px;
+      padding: 12px 12px 14px;
+      margin-bottom: 14px;
+      background: linear-gradient(180deg, rgba(34,197,94,0.06), rgba(255,255,255,0.01));
+    }
+    .garage-section.retired{
+      border: 1px solid rgba(239,68,68,0.18);
+      box-shadow: 0 0 0 1px rgba(239,68,68,0.08) inset, 0 12px 40px rgba(0,0,0,0.25);
+      border-radius: 18px;
+      padding: 12px 12px 14px;
+      background: linear-gradient(180deg, rgba(239,68,68,0.05), rgba(255,255,255,0.01));
+    }
+
+    /* ===== ROI progress bar inside each card ===== */
+    .roi-wrap{ margin-top: 8px; }
+    .roi-bar{
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.10);
+      overflow:hidden;
+    }
+    .roi-fill{
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(34,197,94,0.85), rgba(56,189,248,0.85));
+      transition: width 220ms ease;
+    }
+    .car-card.is-retired .roi-fill{
+      background: linear-gradient(90deg, rgba(239,68,68,0.85), rgba(251,191,36,0.85));
+    }
+    .rarity-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      margin-left: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: 0.9px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.92);
+    }
+    .rarity-badge.common{ border-color: rgba(255,255,255,0.14); }
+    .rarity-badge.rare{ border-color: rgba(56,189,248,0.26); box-shadow: 0 0 18px rgba(56,189,248,0.12); }
+    .rarity-badge.epic{ border-color: rgba(244,114,182,0.30); box-shadow: 0 0 18px rgba(244,114,182,0.14); }
+
+    /* ===== Result position animation ===== */
+    .big.pop{ animation: popIn 420ms ease-out both; }
+    @keyframes popIn{
+      0%{ transform: translateY(8px) scale(0.96); opacity: 0; }
+      70%{ transform: translateY(0) scale(1.03); opacity: 1; }
+      100%{ transform: translateY(0) scale(1.00); opacity: 1; }
+    }
+    .big.p1{ color: rgba(34,197,94,0.98); text-shadow: 0 0 22px rgba(34,197,94,0.20); }
+    .big.p2{ color: rgba(56,189,248,0.98); text-shadow: 0 0 22px rgba(56,189,248,0.20); }
+    .big.p3{ color: rgba(251,191,36,0.98); text-shadow: 0 0 22px rgba(251,191,36,0.20); }
+
+  
+    /* ===== Time Trial (embedded iframe, full-screen) ===== */
+    .tt-overlay{
+      position:fixed;
+      inset:0;
+      z-index: 2000;
+      display:none;
+      flex-direction:column;
+      background: rgba(0,0,0,0.90);
+      backdrop-filter: blur(8px);
+      /* Safe areas */
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .tt-overlay.show{ display:flex; }
+
+    .tt-topbar{
+      flex: 0 0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.35);
+    }
+    .tt-title{
+      display:flex;
+      flex-direction:column;
+      gap: 2px;
+      min-width: 0;
+    }
+    .tt-title .t1{
+      font-size: 14px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+    .tt-title .t2{
+      font-size: 12px;
+      color: rgba(255,255,255,0.72);
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+    .tt-actions{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+    .tt-btn{
+      border:1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.18);
+      color: rgba(255,255,255,0.92);
+      border-radius: 14px;
+      padding: 10px 12px;
+      cursor:pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .tt-btn.primary{
+      background: linear-gradient(135deg, var(--red), var(--orange));
+      border:none;
+      color:#fff;
+    }
+
+    .tt-frame-wrap{
+      flex: 1 1 auto;
+      position:relative;
+      /* Use dynamic viewport units when available (mobile address bar) */
+      height: 100dvh;
+      height: 100svh;
+      height: 100vh;
+      min-height: 0;
+    }
+    .tt-iframe{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      border:0;
+      background: #000;
+    }
+
+  </style>
+</head>
+
+<body>
+  <!-- HEADER -->
+  <header>
+    <div class="nav">
+      <a class="logo" href="index.html" aria-label="MicroRacers POL - Home">
+        <img class="logo-img" src="logo-microracers-pol.png" alt="MicroRacers POL" />
+      </a>
+      <div class="nav-links">
+        <a href="game.html">Play</a>
+        <a href="whitepaper.html">Whitepaper</a>
+        <span class="polygon">Powered by Polygon</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+
+    <!-- SEMI HERO -->
+    <section class="mini-hero" aria-label="Play header">
+      <div class="mh-left">
+        <h1>Play</h1>
+        <p id="walletLine">Connect your wallet, load your garage, mint (10 POL), and race on-chain.</p>
+      </div>
+
+      <div class="mh-right">
+        <button class="btn primary" id="btnConnect">Connect Wallet</button>
+        <button class="btn" id="btnSwitch" style="display:none;">Switch to Amoy</button>
+        <button class="btn" id="btnLoadGarage" disabled>Load Garage</button>
+        <button class="btn" id="btnMint" disabled>Mint</button>
+      </div>
+    </section>
+
+    <!-- MAIN GRID -->
+    <section class="grid" aria-label="Game layout">
+
+      <!-- LEFT: GARAGE -->
+      <div class="panel" aria-label="Garage">
+        <div class="panel-head">
+          <div>
+            <h2>Your Garage</h2>
+            <p class="sub" id="garageSub">Tap a car to select it (medium preview).</p>
+          </div>
+          <div class="chip active" id="garageCount">0 cars</div>
+        </div>
+
+        <div class="stats-row" aria-label="Portfolio totals">
+          <div class="stat-card">
+            <div class="stat-label">Total invertido</div>
+            <div class="stat-value" id="totalInvested">—</div>
+            <div class="stat-sub" id="totalInvestedSub">Sumatoria del mint de tus autos (10 POL c/u)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total ganado</div>
+            <div class="stat-value" id="totalEarned">—</div>
+            <div class="stat-sub" id="totalEarnedSub">Recompensas acumuladas (todos tus autos)</div>
+          </div>
+        </div>
+
+        <div class="panel-body garage-wrap">
+
+  <!-- ACTIVE GARAGE -->
+  <div class="garage-section active">
+    <div class="garage-section-head">
+      <div class="garage-section-title">Active Garage</div>
+      <div class="chip active" id="garageCountActive">0 active</div>
+    </div>
+
+    <div class="garage-grid garage-grid-split" id="garageGridActive">
+      <div class="car-card">
+        <div class="car-art">Connect + Load Garage</div>
+        <div class="car-meta">
+          <div class="car-id">#—</div>
+          <div class="chip">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DESGUACE (RETIRED) -->
+  <div class="garage-section retired">
+    <div class="garage-section-head">
+      <div class="garage-section-title desguace">Desguace</div>
+      <div class="chip retired" id="garageCountRetired">0 retired</div>
+    </div>
+
+    <div class="garage-grid garage-grid-split" id="garageGridRetired">
+      <div class="car-card">
+        <div class="car-art">Retired cars will appear here</div>
+        <div class="car-meta">
+          <div class="car-id">#—</div>
+          <div class="chip retired">RETIRED</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-box" id="statusBox">Status: Ready.</div>
+        </div>
+      </div>
+
+      <!-- RIGHT: DETAILS + ACTIONS -->
+      <div class="stack">
+
+        <div class="panel" aria-label="Selected car details">
+          <div class="panel-head">
+            <div>
+              <h2>Selected Car</h2>
+              <p class="sub">On-chain details load automatically.</p>
+            </div>
+            <div class="chip" id="selectedBadge">None</div>
+          </div>
+
+          <div class="panel-body">
+            <div class="kv">
+              <div class="kv-row">
+                <div class="k">Car ID</div>
+                <div class="v" id="d_id">—</div>
+              </div>
+              <div class="kv-row">
+                <div class="k">Races</div>
+                <div class="v" id="d_races">—</div>
+              </div>
+              <div class="kv-row">
+                <div class="k">Total Returned</div>
+                <div class="v" id="d_rewards">—</div>
+              </div>
+              <div class="kv-row">
+                <div class="k">Status</div>
+                <div class="v" id="d_status">—</div>
+              </div>
+              <div class="kv-row">
+                <div class="k">Owner</div>
+                <div class="v" id="d_owner">—</div>
+              </div>
+              <div class="kv-row">
+                <div class="k">Last Transaction</div>
+                <div class="v" id="d_lasttx">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" aria-label="Actions">
+          <div class="panel-head">
+            <div>
+              <h2>Actions</h2>
+              <p class="sub">The selected car will be used for racing.</p>
+            </div>
+            <div class="head-actions">
+              <div class="chip" id="poolChip" style="display:none">Pool: —</div>
+              <button class="btn small" id="btnWithdraw" style="display:none">Withdraw</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="action-row">
+              <button class="btn primary wide" id="btnRace" disabled>Run Race</button>
+            </div>
+<div class="status-box" id="raceBox">Select a car to begin.</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- POPUP / MODAL -->
+
+  <!-- RACE OVERLAY (animation while tx is pending/mining) -->
+  <div class="race-overlay" id="raceOverlay" aria-hidden="true">
+    <div class="race-overlay-card">
+      <div class="race-overlay-top">
+        <div>
+          <div class="race-overlay-title" id="raceOverlayTitle">Race in progress</div>
+          <div class="race-overlay-sub" id="raceOverlaySub">Confirm the transaction in your wallet…</div>
+        </div>
+        <div class="race-chip" id="raceOverlayChip">CAR</div>
+      </div>
+
+      <div class="race-track">
+        <div class="race-lane"></div>
+        <div class="race-car"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="modal" id="resultModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h3 class="modal-title" id="modalTitle">Race Result</h3>
+        <button class="modal-close" id="modalCloseBtn">Close</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-preview">
+          <div class="art" id="modalArt">Loading…</div>
+        </div>
+
+        <div class="modal-info">
+          <div class="result-badge" id="modalBadge">
+            <span class="dot" id="modalDot"></span>
+            <span id="modalCarLabel">Car #—</span>
+          </div>
+
+          <div class="big" id="modalPosition">—</div>
+          <p class="small" id="modalSubtitle">—</p>
+
+          <div class="modal-grid">
+            <div class="mini-box">
+              <div class="k">Reward</div>
+              <div class="v" id="modalReward">—</div>
+            </div>
+            <div class="mini-box">
+              <div class="k">Races Left</div>
+              <div class="v" id="modalRacesLeft">—</div>
+            </div>
+            <div class="mini-box">
+              <div class="k">Total Returned</div>
+              <div class="v" id="modalReturned">—</div>
+            </div>
+            <div class="mini-box">
+              <div class="k">Transaction</div>
+              <div class="v" id="modalTx">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <div class="hint">Tip: You can close by clicking outside, or pressing ESC.</div>
+        <button class="btn primary" id="modalOkBtn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ethers v6 -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+
+  
+  <script>
+    /******************************************************************
+     * CONFIG (Amoy)
+     ******************************************************************/
+    const AMOY = {
+      chainIdDec: 80002,
+      chainIdHex: "0x13882",
+      chainName: "Polygon Amoy",
+      nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
+      rpcUrls: ["https://rpc-amoy.polygon.technology"],
+      blockExplorerUrls: ["https://amoy.polygonscan.com"]
+    };
+
+    // ✅ NEW DEPLOY (from your node deploy output)
+    const GAME_ADDRESS = "0x6d3D542D6FCCaAEe50CfD882280D69b4546f872d";
+    const CARS_ADDRESS = "0xfEa7Ef7D2d312958D20b96fE9cf436C3047A1f44";
+
+    /******************************************************************
+     * ABIs
+     * - Cars matches MR_AUTOS (autos.sol)
+     * - Game matches MR_JUEGO (game.sol) ✅
+     ******************************************************************/
+    const CARS_ABI = [
+      {"inputs":[{"internalType":"address","name":"_gameContract","type":"address"},{"internalType":"string","name":"_baseImageURI","type":"string"}],"stateMutability":"nonpayable","type":"constructor"},
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"approved","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Approval","type":"event"},
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"operator","type":"address"},{"indexed":false,"internalType":"bool","name":"approved","type":"bool"}],"name":"ApprovalForAll","type":"event"},
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},
+      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":true,"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"Transfer","type":"event"},
+      {"inputs":[],"name":"MAX_SUPPLY","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"MINT_PRICE","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"baseImageURI","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"address","name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"gameContract","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"maxRacesOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"mint","outputs":[],"stateMutability":"payable","type":"function"},
+      {"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"renounceOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"string","name":"uri","type":"string"}],"name":"setBaseImageURI","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"tokenURI","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"}
+    ];
+
+    // ✅ Game ABI for MR_JUEGO (game.sol)
+    const GAME_ABI = [
+      {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
+      {"stateMutability":"payable","type":"receive"},
+      {"inputs":[],"name":"PRICE","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"ROI_BPS","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"BPS","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"COOLDOWN","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"REWARD_FIRST","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"REWARD_SECOND","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"REWARD_THIRD","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"autos","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"autosLocked","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"address","name":"autosAddress","type":"address"}],"name":"setAutos","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"race","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"address payable","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"withdrawPool","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"carState","outputs":[
+        {"internalType":"uint256","name":"racesLeft","type":"uint256"},
+        {"internalType":"uint256","name":"returnedAmount","type":"uint256"},
+        {"internalType":"uint256","name":"maxReturn","type":"uint256"},
+        {"internalType":"uint256","name":"lastRaceAt","type":"uint256"},
+        {"internalType":"uint256","name":"nonce","type":"uint256"},
+        {"internalType":"bool","name":"initialized","type":"bool"}
+      ],"stateMutability":"view","type":"function"}
+    ];
+
+    /******************************************************************
+     * UI helpers
+     ******************************************************************/
+    const $ = (id) => document.getElementById(id);
+
+    function shortAddr(a){
+      if(!a) return "—";
+      return a.slice(0,6) + "…" + a.slice(-4);
+    }
+
+    function formatPOL(wei){
+      try{
+        return Number(ethers.formatEther(wei)).toFixed(6) + " POL";
+      }catch{
+        return "—";
+      }
+    }
+
+    function setPortfolioTotals(investedWei, earnedWei, mintPriceWei, count){
+      const investedEl = $("totalInvested");
+      const earnedEl = $("totalEarned");
+      if(investedEl) investedEl.textContent = investedWei != null ? formatPOL(investedWei) : "—";
+      if(earnedEl) earnedEl.textContent = earnedWei != null ? formatPOL(earnedWei) : "—";
+
+      const invSub = $("totalInvestedSub");
+      if(invSub && mintPriceWei != null && count != null){
+        invSub.textContent = `${count} car(s) × ${formatPOL(mintPriceWei)} (mint)`;
+      }
+    }
+
+    function setStatus(msg){ $("statusBox").textContent = "Status: " + msg; }
+    function setRace(msg){ $("raceBox").textContent = msg; }
+
+    function setSelectedDetails(d){
+      $("d_id").textContent = d.id ?? "—";
+      $("d_races").textContent = d.races ?? "—";
+      $("d_rewards").textContent = d.rewards ?? "—";
+      $("d_status").textContent = d.status ?? "—";
+      $("d_owner").textContent = d.owner ?? "—";
+      $("d_lasttx").textContent = d.lasttx ?? "—";
+      $("selectedBadge").textContent = d.id ? ("#" + d.id) : "None";
+    }
+
+    function setWalletLine(text){ $("walletLine").textContent = text; }
+    function showSwitchButton(show){ $("btnSwitch").style.display = show ? "" : "none"; }
+
+    /******************************************************************
+     * POPUP helpers
+     ******************************************************************/
+    function showModal(){
+      const m = $("resultModal");
+      m.classList.add("show");
+      m.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+    function hideModal(){
+      const m = $("resultModal");
+      m.classList.remove("show");
+      m.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    }
+
+    function ordinal(n){
+      if(n === 1) return "1st Place";
+      if(n === 2) return "2nd Place";
+      if(n === 3) return "3rd Place";
+      return "Result";
+    }
+
+    function inferRarityFromMaxRaces(maxRaces){
+      const n = Number(maxRaces ?? 0);
+      if(n >= 22) return "epic";
+      if(n >= 21) return "rare";
+      return "common";
+    }
+
+    function fmtTime(secs){
+      secs = Math.max(0, Math.floor(secs));
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      if(m <= 0) return `${s}s`;
+      return `${m}m ${String(s).padStart(2,"0")}s`;
+    }
+
+    function isCooldownActive(){
+      if(!selectedCarId) return false;
+      const now = Math.floor(Date.now()/1000);
+      return cooldownUntil > 0 && now < cooldownUntil;
+    }
+
+    function startCooldownCountdown(){
+      if(cooldownTimer) clearInterval(cooldownTimer);
+
+      const tick = () => {
+        if(!selectedCarId) return;
+
+        const now = Math.floor(Date.now()/1000);
+        const left = cooldownUntil - now;
+
+        if(left > 0){
+          const btn = $("btnRace");
+          btn.disabled = true;
+          btn.textContent = `Cooldown (${fmtTime(left)})`;
+          setRace(`Cooldown activo. Próxima carrera en ${fmtTime(left)}.`);
+        }else{
+          if(cooldownTimer){ clearInterval(cooldownTimer); cooldownTimer = null; }
+          setRunRaceButtonState();
+          if(!selectedCarIsRetired && selectedCarId){
+            setRace(`Ready to race with car #${selectedCarId}.`);
+          }
+        }
+      };
+
+      tick();
+      cooldownTimer = setInterval(tick, 1000);
+    }
+
+    function showRaceOverlay(stage, tokenId, rarity){
+      const ov = $("raceOverlay");
+      if(!ov) return;
+      ov.classList.add("show");
+      ov.setAttribute("aria-hidden", "false");
+
+      ov.classList.remove("rarity-common","rarity-rare","rarity-epic");
+      ov.classList.add(`rarity-${rarity || "common"}`);
+
+      $("raceOverlayChip").textContent = tokenId ? `CAR #${tokenId}` : "CAR";
+
+      if(stage === "confirm"){
+        $("raceOverlayTitle").textContent = "Confirm in your wallet";
+        $("raceOverlaySub").textContent = "Confirm the transaction in MetaMask to start the race…";
+      }else if(stage === "mining"){
+        $("raceOverlayTitle").textContent = "Race in progress…";
+        $("raceOverlaySub").textContent = "Waiting for on-chain confirmation…";
+      }else{
+        $("raceOverlayTitle").textContent = "Processing…";
+        $("raceOverlaySub").textContent = "Please wait…";
+      }
+    }
+
+    function hideRaceOverlay(){
+      const ov = $("raceOverlay");
+      if(!ov) return;
+      ov.classList.remove("show");
+      ov.setAttribute("aria-hidden", "true");
+    }
+
+    function setModalResult({ tokenId, position, rewardWei, racesLeft, returnedAmount, txHash, imageUrl }){
+      $("modalCarLabel").textContent = `Car #${tokenId}`;
+
+      const dot = $("modalDot");
+      dot.className = "dot";
+      if(position === 1) dot.classList.add("p1");
+      if(position === 2) dot.classList.add("p2");
+      if(position === 3) dot.classList.add("p3");
+
+      $("modalPosition").textContent = position ? ordinal(position) : "Race Completed";
+      const big = $("modalPosition");
+      big.className = "big pop";
+      if(position === 1) big.classList.add("p1");
+      if(position === 2) big.classList.add("p2");
+      if(position === 3) big.classList.add("p3");
+
+      $("modalSubtitle").textContent = position
+        ? "Your car finished the race and earned a reward."
+        : "Race confirmed. (Position inferred from reward.)";
+
+      $("modalReward").textContent = rewardWei != null ? formatPOL(rewardWei) : "—";
+      $("modalRacesLeft").textContent = racesLeft != null ? String(racesLeft) : "—";
+      $("modalReturned").textContent = returnedAmount != null ? formatPOL(returnedAmount) : "—";
+      $("modalTx").textContent = txHash ? txHash : "—";
+
+      const art = $("modalArt");
+      if(imageUrl){
+        art.innerHTML = `<img alt="Car #${tokenId}" src="${imageUrl}" />`;
+      }else{
+        art.textContent = "No image";
+      }
+    }
+
+    /******************************************************************
+     * Web3 state
+     ******************************************************************/
+    let provider = null;
+    let signer = null;
+    let userAddress = null;
+
+    let cars = null;
+    let game = null;
+
+    let selectedCarId = null;
+    let selectedCarRarity = "common";
+    let selectedCarIsRetired = false;
+
+    // Cooldown UI
+    let cooldownTimer = null;
+    let cooldownUntil = 0; // unix seconds when the selected car can race again
+    const lastTxByCar = new Map();
+
+    const imageByCar = new Map();
+    const retiredByCar = new Map();
+
+    // cached constants (from game)
+    let PRICE = null, ROI_BPS = null, BPS = null, COOLDOWN = null;
+    let REW_FIRST = null, REW_SECOND = null, REW_THIRD = null;
+
+    /******************************************************************
+     * Admin + Gas settings (Amoy)
+     ******************************************************************/
+    let gameOwner = null;
+    let isOwner = false;
+
+    const FEE_BOOST_NUM = 13n;
+    const FEE_BOOST_DEN = 10n;
+
+    function mulDiv(a, num, den){
+      try{ return (a * num) / den; }catch{ return a; }
+    }
+
+    async function getFeeOverrides(){
+      if(!provider) return {};
+      try{
+        const fd = await provider.getFeeData();
+        let maxFee = fd.maxFeePerGas;
+        let prio = fd.maxPriorityFeePerGas;
+
+        if(!maxFee || !prio){
+          prio = ethers.parseUnits("40", "gwei");
+          maxFee = ethers.parseUnits("80", "gwei");
+        }else{
+          maxFee = mulDiv(maxFee, FEE_BOOST_NUM, FEE_BOOST_DEN);
+          prio = mulDiv(prio, FEE_BOOST_NUM, FEE_BOOST_DEN);
+        }
+
+        const MIN_PRIO = ethers.parseUnits("30", "gwei");
+        const MIN_MAX  = ethers.parseUnits("60", "gwei");
+        if(prio < MIN_PRIO) prio = MIN_PRIO;
+        if(maxFee < MIN_MAX) maxFee = MIN_MAX;
+
+        const twicePrio = prio * 2n;
+        if(maxFee < twicePrio) maxFee = twicePrio;
+
+        return { maxFeePerGas: maxFee, maxPriorityFeePerGas: prio };
+      }catch{
+        return {
+          maxFeePerGas: ethers.parseUnits("60", "gwei"),
+          maxPriorityFeePerGas: ethers.parseUnits("30", "gwei")
+        };
+      }
+    }
+
+    function setAdminUI(){
+      const pool = $("poolChip");
+      const wbtn = $("btnWithdraw");
+      if(!pool || !wbtn) return;
+      if(isOwner){
+        pool.style.display = "inline-flex";
+        wbtn.style.display = "inline-flex";
+      }else{
+        pool.style.display = "none";
+        wbtn.style.display = "none";
+      }
+    }
+
+    /******************************************************************
+     * Button state helpers (Retired)
+     ******************************************************************/
+    function setRunRaceButtonState(){
+      const btn = $("btnRace");
+      const hasSelected = !!selectedCarId;
+
+      if(!hasSelected){
+        btn.textContent = "Run Race";
+        btn.disabled = true;
+        return;
+      }
+
+      if(selectedCarIsRetired){
+        btn.textContent = "Car Retired";
+        btn.disabled = true;
+        return;
+      }
+
+      if(isCooldownActive()){
+        const now = Math.floor(Date.now()/1000);
+        const left = cooldownUntil - now;
+        btn.textContent = `Cooldown (${fmtTime(left)})`;
+        btn.disabled = true;
+        return;
+      }
+
+      btn.textContent = "Run Race";
+      btn.disabled = false;
+    }
+
+    /******************************************************************
+     * Network helpers
+     ******************************************************************/
+    async function getChainId(){
+      if(!provider) return null;
+      const net = await provider.getNetwork();
+      return Number(net.chainId);
+    }
+
+    async function ensureAmoyUI(){
+      const chainId = await getChainId();
+      const ok = (chainId === AMOY.chainIdDec);
+
+      showSwitchButton(!ok && !!userAddress);
+      $("btnLoadGarage").disabled = !ok || !userAddress;
+      $("btnMint").disabled = !ok || !userAddress;
+
+            // Run Race state is handled centrally (selection + retired + cooldown)
+      setRunRaceButtonState();
+if(!userAddress){
+        setWalletLine("Connect your wallet, load your garage, mint (10 POL), and race on-chain.");
+        return ok;
+      }
+
+      if(ok){
+        setWalletLine(`Connected: ${shortAddr(userAddress)} • Network: Amoy`);
+        setStatus("Connected to Amoy. Ready.");
+      }else{
+        setWalletLine(`Connected: ${shortAddr(userAddress)} • Wrong network`);
+        setStatus("Wrong network. Click Switch to Amoy.");
+      }
+      return ok;
+    }
+
+    async function switchToAmoy(){
+      if(!window.ethereum) throw new Error("MetaMask not found.");
+      try{
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: AMOY.chainIdHex }]
+        });
+      }catch(e){
+        if(e && e.code === 4902){
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: AMOY.chainIdHex,
+              chainName: AMOY.chainName,
+              rpcUrls: AMOY.rpcUrls,
+              nativeCurrency: AMOY.nativeCurrency,
+              blockExplorerUrls: AMOY.blockExplorerUrls
+            }]
+          });
+        }else{
+          throw e;
+        }
+      }
+      await ensureAmoyUI();
+    }
+
+    /******************************************************************
+     * TokenURI / metadata helpers
+     ******************************************************************/
+    function ipfsToHttp(url){
+      if(!url) return url;
+      if(url.startsWith("ipfs://")){
+        const cidPath = url.replace("ipfs://", "");
+        return "https://ipfs.io/ipfs/" + cidPath;
+      }
+      return url;
+    }
+
+    function isDataJsonUri(u){
+      return typeof u === "string" && u.startsWith("data:application/json");
+    }
+
+    function decodeDataJson(u){
+      const base64Marker = "base64,";
+      const i = u.indexOf(base64Marker);
+      if(i === -1) throw new Error("Unsupported data URI (expected base64).");
+      const b64 = u.slice(i + base64Marker.length);
+      const jsonStr = atob(b64);
+      return JSON.parse(jsonStr);
+    }
+
+    async function fetchJsonSmart(uri){
+      if(!uri) return null;
+      if(isDataJsonUri(uri)) return decodeDataJson(uri);
+
+      const http = ipfsToHttp(uri);
+      const r = await fetch(http, { cache: "no-store" });
+      if(!r.ok) throw new Error("Failed to fetch metadata: " + r.status);
+      return await r.json();
+    }
+
+    async function getImageFromTokenURI(tokenId){
+      try{
+        const uri = await cars.tokenURI(tokenId);
+        const meta = await fetchJsonSmart(uri);
+        if(!meta) return null;
+        let img = meta.image || meta.image_url || null;
+        if(!img && meta.properties && meta.properties.image) img = meta.properties.image;
+        if(!img) return null;
+        return ipfsToHttp(img);
+      }catch{
+        return null;
+      }
+    }
+
+    /******************************************************************
+     * Read "car view" from MR_JUEGO + MR_AUTOS
+     * MR_JUEGO initializes a car on first race, so UI must simulate
+     * initial values if carState.initialized == false.
+     ******************************************************************/
+    async function loadGameConstants(){
+      if(!game) return;
+      try{
+        [PRICE, ROI_BPS, BPS, COOLDOWN, REW_FIRST, REW_SECOND, REW_THIRD] = await Promise.all([
+          game.PRICE(),
+          game.ROI_BPS(),
+          game.BPS(),
+          game.COOLDOWN(),
+          game.REWARD_FIRST(),
+          game.REWARD_SECOND(),
+          game.REWARD_THIRD()
+        ]);
+      }catch{
+        // if something fails, keep nulls (UI will still work with fallbacks)
+      }
+    }
+
+    function positionFromReward(rewardWei){
+      if(REW_FIRST && rewardWei === REW_FIRST) return 1;
+      if(REW_SECOND && rewardWei === REW_SECOND) return 2;
+      if(REW_THIRD && rewardWei === REW_THIRD) return 3;
+      return null;
+    }
+
+    async function getCarView(tokenId){
+      // owner + max races come from autos
+      const [carOwner, maxRacesRaw] = await Promise.all([
+        cars.ownerOf(tokenId),
+        cars.maxRacesOf(tokenId)
+      ]);
+
+      const maxRaces = BigInt(maxRacesRaw);
+      const rarity = inferRarityFromMaxRaces(maxRaces);
+
+      // state comes from game
+      const st = await game.carState(tokenId);
+
+      let racesLeft = BigInt(st.racesLeft ?? 0n);
+      let returnedAmount = BigInt(st.returnedAmount ?? 0n);
+      let maxReturn = BigInt(st.maxReturn ?? 0n);
+      const initialized = !!st.initialized;
+
+      // if not initialized yet (never raced), simulate the init values
+      if(!initialized){
+        const price = PRICE ?? 10n * 10n**18n;      // fallback 10 POL
+        const roi = ROI_BPS ?? 12000n;
+        const bps = BPS ?? 10000n;
+        racesLeft = maxRaces;
+        returnedAmount = 0n;
+        maxReturn = (price * roi) / bps;
+      }
+
+      const racesTotal = maxRaces;
+      const retired = (racesLeft === 0n) || (returnedAmount >= maxReturn);
+
+      return {
+        tokenId: Number(tokenId),
+        carOwner,
+        racesLeft,
+        racesTotal,
+        returnedAmount,
+        maxReturn,
+        lastRaceAt: Number(st.lastRaceAt || 0),
+        retired,
+        rarity
+      };
+    }
+
+    /******************************************************************
+     * Garage listing (Plan A)
+     ******************************************************************/
+    async function asyncPool(limit, array, iteratorFn){
+      const ret = [];
+      const executing = [];
+      for(const item of array){
+        const p = Promise.resolve().then(() => iteratorFn(item));
+        ret.push(p);
+
+        if(limit <= array.length){
+          const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+          executing.push(e);
+          if(executing.length >= limit){
+            await Promise.race(executing);
+          }
+        }
+      }
+      return Promise.all(ret);
+    }
+
+    function clearGarage(){
+      const gridA = $("garageGridActive");
+      const gridR = $("garageGridRetired");
+      if(gridA) gridA.innerHTML = "";
+      if(gridR) gridR.innerHTML = "";
+      $("garageCount").textContent = "0 cars";
+      $("garageCountActive").textContent = "0 active";
+      $("garageCountRetired").textContent = "0 retired";
+      if($("totalInvested")) $("totalInvested").textContent = "—";
+      if($("totalEarned")) $("totalEarned").textContent = "—";
+      if($("totalInvestedSub")) $("totalInvestedSub").textContent = "Sumatoria del mint de tus autos (10 POL c/u)";
+      imageByCar.clear();
+      retiredByCar.clear();
+    }
+
+    function renderGarageCards(carIds, gridId, countId, forceRetiredFlag){
+      const grid = $(gridId);
+      if(!grid) return;
+      grid.innerHTML = "";
+
+      carIds.sort((a,b)=>a-b).forEach((id)=>{
+        const isRetired = (typeof forceRetiredFlag === "boolean") ? forceRetiredFlag : (retiredByCar.get(id) === true);
+
+        const card = document.createElement("div");
+        card.className = "car-card";
+        card.dataset.id = String(id);
+        card.dataset.retired = isRetired ? "1" : "0";
+        card.classList.toggle("is-retired", isRetired);
+
+        card.innerHTML = `
+          <div class="selected-badge">Selected</div>
+          <div class="car-art" id="art-${id}">Loading image…</div>
+          <div class="car-meta">
+            <div class="car-id">#${id}</div>
+            <div style="display:flex; align-items:center; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+              <div class="chip ${isRetired ? "retired" : "active"}" id="chip-${id}">${isRetired ? "RETIRED" : "ACTIVE"}</div>
+              <div class="rarity-badge common" id="rarity-${id}">—</div>
+            </div>
+          </div>
+          <div class="roi-wrap">
+            <div class="roi-bar"><div class="roi-fill" id="roi-${id}"></div></div>
+          </div>
+        `;
+
+        card.addEventListener("click", () => selectCar(id));
+
+        if(isRetired){
+          const rb = document.createElement("div");
+          rb.className = "retired-ribbon";
+          rb.textContent = "RETIRED";
+          card.appendChild(rb);
+        }
+
+        grid.appendChild(card);
+      });
+
+      if(countId){
+        const el = $(countId);
+        if(el) el.textContent = carIds.length + (gridId === "garageGridRetired" ? " retired" : " active");
+      }
+    }
+
+    function markSelectedCard(id){
+      document.querySelectorAll(".car-card").forEach(el=>{
+        el.classList.toggle("selected", Number(el.dataset.id) === Number(id));
+      });
+    }
+
+    async function decorateCard(tokenId, viewOverride){
+      // viewOverride may include retired/rarity/roi inputs
+      let view = null;
+      try{
+        view = viewOverride || await getCarView(tokenId);
+      }catch{
+        // if something fails, keep minimal
+        view = viewOverride || { retired:false, rarity:"common", returnedAmount:0n, maxReturn:0n };
+      }
+
+      const retired = !!view.retired;
+      retiredByCar.set(tokenId, retired);
+
+      const cardEl = document.querySelector(`.car-card[data-id="${tokenId}"]`);
+      if(cardEl){
+        cardEl.dataset.retired = retired ? "1" : "0";
+        cardEl.classList.toggle("is-retired", retired);
+
+        const existing = cardEl.querySelector(".retired-ribbon");
+        if(retired){
+          if(!existing){
+            const rb = document.createElement("div");
+            rb.className = "retired-ribbon";
+            rb.textContent = "RETIRED";
+            cardEl.appendChild(rb);
+          }
+        }else{
+          if(existing) existing.remove();
+        }
+
+        cardEl.classList.remove("rarity-common","rarity-rare","rarity-epic");
+        cardEl.classList.add(`rarity-${view.rarity || "common"}`);
+      }
+
+      const chip = document.getElementById(`chip-${tokenId}`);
+      if(chip){
+        chip.textContent = retired ? "RETIRED" : "ACTIVE";
+        chip.className = retired ? "chip retired" : "chip active";
+      }
+
+      const badge = document.getElementById(`rarity-${tokenId}`);
+      if(badge){
+        const r = (view.rarity || "common");
+        badge.textContent = r.toUpperCase();
+        badge.classList.remove("common","rare","epic");
+        badge.classList.add(r);
+      }
+
+      // ROI progress bar
+      try{
+        const returnedAmount = BigInt(view.returnedAmount ?? 0n);
+        const maxReturn = BigInt(view.maxReturn ?? 0n);
+        let pct = 0;
+        if(maxReturn > 0n){
+          const p10000 = (returnedAmount * 10000n) / maxReturn;
+          pct = Number(p10000) / 100;
+          if(!Number.isFinite(pct)) pct = 0;
+          pct = Math.max(0, Math.min(100, pct));
+        }
+        const fill = document.getElementById(`roi-${tokenId}`);
+        if(fill) fill.style.width = pct.toFixed(2) + "%";
+      }catch{}
+
+      // image via tokenURI metadata
+      const art = document.getElementById(`art-${tokenId}`);
+      const imgUrl = await getImageFromTokenURI(tokenId);
+      if(imgUrl) imageByCar.set(tokenId, imgUrl);
+
+      if(art){
+        if(imgUrl) art.innerHTML = `<img alt="Car #${tokenId}" src="${imgUrl}" loading="lazy" />`;
+        else art.textContent = "No image";
+      }
+    }
+
+    async function loadGarage(){
+      if(!cars || !game || !userAddress) return;
+      const ok = await ensureAmoyUI();
+      if(!ok) return;
+
+      clearGarage();
+      setSelectedDetails({});
+      selectedCarId = null;
+      selectedCarIsRetired = false;
+      clearTimeTrialUnlock();
+      setRunRaceButtonState();
+
+      setStatus("Scanning collection…");
+      $("garageSub").textContent = "Scanning totalSupply and filtering by owner.";
+
+      const supply = await cars.totalSupply();
+      const total = Number(supply);
+
+      if(!Number.isFinite(total) || total <= 0){
+        setStatus("No cars minted yet.");
+        return;
+      }
+
+      const ids = Array.from({length: total}, (_,i)=> i+1);
+
+      let found = [];
+      let scanned = 0;
+      const CONCURRENCY = 10;
+
+      await asyncPool(CONCURRENCY, ids, async (tokenId) => {
+        try{
+          const owner = await cars.ownerOf(tokenId);
+          if(owner && owner.toLowerCase() === userAddress.toLowerCase()){
+            found.push(tokenId);
+          }
+        }catch{} finally{
+          scanned++;
+          if(scanned % 10 === 0 || scanned === total){
+            setStatus(`Scanning ${scanned}/${total} • Found ${found.length} car(s)…`);
+          }
+        }
+      });
+
+      if(found.length === 0){
+        setStatus("Scan complete. You have 0 cars.");
+        $("garageSub").textContent = "Mint a car, then load your garage again.";
+        return;
+      }
+
+      setStatus(`Found ${found.length} car(s). Reading on-chain status…`);
+      $("garageSub").textContent = "Separating ACTIVE vs RETIRED (Desguace)…";
+
+      // portfolio totals
+      let mintPriceWei = 10n * 10n**18n;
+      try{ mintPriceWei = BigInt(await cars.MINT_PRICE()); }catch{}
+      let totalEarnedWei = 0n;
+
+      const activeIds = [];
+      const retiredIds = [];
+      const viewsById = new Map();
+
+      let checked = 0;
+      await asyncPool(8, found, async (id) => {
+        try{
+          const view = await getCarView(id);
+          viewsById.set(id, view);
+
+          totalEarnedWei += BigInt(view.returnedAmount ?? 0n);
+          retiredByCar.set(id, !!view.retired);
+
+          if(view.retired) retiredIds.push(id);
+          else activeIds.push(id);
+        }catch{
+          retiredByCar.set(id, false);
+          activeIds.push(id);
+        }finally{
+          checked++;
+          if(checked % 10 === 0 || checked === found.length){
+            setStatus(`Checking ${checked}/${found.length} • Active ${activeIds.length} • Retired ${retiredIds.length}`);
+          }
+        }
+      });
+
+      setStatus("Rendering garage…");
+      $("garageSub").textContent = "Loading NFT images…";
+
+      renderGarageCards(activeIds, "garageGridActive", "garageCountActive");
+      renderGarageCards(retiredIds, "garageGridRetired", "garageCountRetired");
+
+      $("garageCount").textContent = found.length + " cars";
+
+      const totalInvestedWei = BigInt(found.length) * mintPriceWei;
+      setPortfolioTotals(totalInvestedWei, totalEarnedWei, mintPriceWei, found.length);
+
+      if(activeIds.length === 0){
+        $("garageGridActive").innerHTML = `<div class="car-card"><div class="car-art">No ACTIVE cars</div><div class="car-meta"><div class="car-id">—</div><div class="chip">—</div></div></div>`;
+        $("garageCountActive").textContent = "0 active";
+      }
+      if(retiredIds.length === 0){
+        $("garageGridRetired").innerHTML = `<div class="car-card is-retired"><div class="retired-ribbon">RETIRED</div><div class="car-art">No RETIRED cars</div><div class="car-meta"><div class="car-id">—</div><div class="chip retired">RETIRED</div></div></div>`;
+        $("garageCountRetired").textContent = "0 retired";
+      }
+
+      const allIds = [...activeIds, ...retiredIds];
+      await asyncPool(8, allIds, async (id) => decorateCard(id, viewsById.get(id) || null));
+
+      setStatus(`Garage ready. Select a car.`);
+      $("garageSub").textContent = "Tap a car (ACTIVE or RETIRED) to view its stats.";
+    }
+
+    /******************************************************************
+     * Selected car details
+     ******************************************************************/
+    async function selectCar(tokenId){
+      selectedCarId = tokenId;
+      clearTimeTrialUnlock();
+      markSelectedCard(tokenId);
+
+      setStatus(`Car #${tokenId} selected. Loading details…`);
+      setRace(`Loading on-chain status for car #${tokenId}…`);
+
+      const v = await getCarView(tokenId);
+
+      selectedCarRarity = v.rarity;
+      selectedCarIsRetired = !!v.retired;
+
+      // Compute cooldown window for this car
+      try{
+        const cd = COOLDOWN ? Number(COOLDOWN) : 0;
+        cooldownUntil = (Number(v.lastRaceAt || 0) + cd);
+      }catch{
+        cooldownUntil = 0;
+      }
+
+      // Start/stop countdown UI
+      if(cooldownTimer){ clearInterval(cooldownTimer); cooldownTimer = null; }
+      if(isCooldownActive()){
+        startCooldownCountdown();
+      }
+
+      const tx = lastTxByCar.get(tokenId) || "—";
+
+      setSelectedDetails({
+        id: tokenId,
+        races: `${Number(v.racesTotal - v.racesLeft)} / ${Number(v.racesTotal)}`,
+        rewards: `${formatPOL(v.returnedAmount)} / ${formatPOL(v.maxReturn)}`,
+        status: v.retired ? "RETIRED" : "ACTIVE",
+        owner: v.carOwner ? v.carOwner : "—",
+        lasttx: tx
+      });
+
+      await decorateCard(tokenId, v);
+
+      await ensureAmoyUI();
+      setRunRaceButtonState();
+
+      if(v.retired){
+        setRace("This car is RETIRED and can no longer race.");
+        setStatus(`Car #${tokenId} is RETIRED.`);
+      }else{
+        setRace(`Ready to race with car #${tokenId}.`);
+        setStatus(`Car #${tokenId} loaded.`);
+      }
+    }
+
+    /******************************************************************
+     * Mint
+     ******************************************************************/
+    async function mintCar(){
+      const ok = await ensureAmoyUI();
+      if(!ok) return;
+
+      try{
+        $("btnMint").disabled = true;
+        setStatus("Reading mint price…");
+
+        const price = await cars.MINT_PRICE();
+        setStatus(`Minting (price: ${formatPOL(price)})… Confirm in MetaMask.`);
+
+        const fees = await getFeeOverrides();
+        const overrides = { value: price, ...fees };
+
+        try{
+          const est = await cars.mint.estimateGas(overrides);
+          overrides.gasLimit = (est * 12n) / 10n;
+        }catch{}
+
+        const tx = await cars.mint(overrides);
+        setStatus(`Mint pending… ${tx.hash}`);
+        await tx.wait();
+
+        setStatus("Mint confirmed. Reload your garage.");
+      }catch(e){
+        setStatus("Mint failed: " + (e?.shortMessage || e?.message || "Unknown error"));
+      }finally{
+        $("btnMint").disabled = false;
+        await refreshPool(); // mint funds go to game immediately
+      }
+    }
+
+    /******************************************************************
+     * Race
+     ******************************************************************/
+
+    /******************************************************************
+ * Time Trial gate (page-based, frontend-only)
+ * - pista.html opens as a separate page (no iframe / no modal)
+ * - pista.html reports result back to this page via window.postMessage
+ ******************************************************************/
+
+const TIME_TRIAL_LIMIT_SEC = 35;      // objective
+const TIME_TRIAL_UNLOCK_MS = 60_000;  // unlock duration after passing
+const TIME_TRIAL_PAGE = "PISTA/pista.html";
+
+let timeTrialUnlockedUntil = 0;
+let ttIsOpen = false;
+let ttLastUrl = "";
+
+function isTimeTrialUnlocked(){
+  return Date.now() < timeTrialUnlockedUntil;
+}
+function clearTimeTrialUnlock(){
+  timeTrialUnlockedUntil = 0;
+}
+
+function showTimeTrialOverlay(show){
+  const ov = $("ttOverlay");
+  if(!ov) return;
+  ttIsOpen = !!show;
+  ov.classList.toggle("show", !!show);
+  ov.setAttribute("aria-hidden", show ? "false" : "true");
+  // Lock scrolling behind the overlay (important on mobile)
+  document.body.style.overflow = show ? "hidden" : "";
+}
+
+function timeTrialUrlForCar(carId){
+  // cache-bust with &t= to avoid stale iframe state on reopen
+  return `${TIME_TRIAL_PAGE}?embed=1&car=${encodeURIComponent(carId)}&limit=${encodeURIComponent(TIME_TRIAL_LIMIT_SEC)}&t=${Date.now()}`;
+}
+
+function openTimeTrialModal(){
+  if(!selectedCarId){
+    setRace("Select a car to begin.");
+    return;
+  }
+
+  // Update topbar labels
+  const t = $("ttTitle");
+  const s = $("ttSub");
+  if(t) t.textContent = `Time Trial — Car #${selectedCarId}`;
+  if(s) s.textContent = `Goal: ≤ ${TIME_TRIAL_LIMIT_SEC}s · Finish to unlock Run Race`;
+
+  const frame = $("ttFrame");
+  if(!frame) return;
+
+  const url = timeTrialUrlForCar(selectedCarId);
+  ttLastUrl = url;
+
+  // Load / reload the iframe fresh each time (prevents "works once" issues)
+  frame.src = url;
+
+  showTimeTrialOverlay(true);
+  setRace(`Time Trial opened for car #${selectedCarId}. Finish in ≤ ${TIME_TRIAL_LIMIT_SEC}s.`);
+}
+
+function closeTimeTrialModal(){
+  const frame = $("ttFrame");
+  showTimeTrialOverlay(false);
+
+  // Optional: unload iframe to free resources on low-end phones
+  if(frame) frame.src = "about:blank";
+}
+
+function postToTimeTrial(payload){
+  const frame = $("ttFrame");
+  if(!frame || !frame.contentWindow) return;
+  try{
+    frame.contentWindow.postMessage(payload, "*");
+  }catch(e){}
+}
+
+function attachTimeTrialMessageListener(){
+  window.addEventListener("message", (ev)=>{
+    const d = ev.data;
+    if(!d || typeof d !== "object") return;
+
+    // Track tells us it's ready (useful for sending reset/start if needed)
+    if(d.type === "MICRORACERS_TIME_TRIAL_READY"){
+      // Ensure the track input is enabled
+      postToTimeTrial({ type:"MICRORACERS_TIME_TRIAL_INPUT", enabled:true });
+      return;
+    }
+
+    if(d.type !== "MICRORACERS_TIME_TRIAL_DONE") return;
+
+    const t = Number(d.timeSec);
+    if(!Number.isFinite(t)) return;
+
+    if(t <= TIME_TRIAL_LIMIT_SEC){
+      timeTrialUnlockedUntil = Date.now() + TIME_TRIAL_UNLOCK_MS;
+      setRace(`✅ Time Trial passed: ${t.toFixed(2)}s (limit ${TIME_TRIAL_LIMIT_SEC}s). Now press Run Race.`);
+      // Close the overlay automatically on success
+      closeTimeTrialModal();
+    }else{
+      timeTrialUnlockedUntil = 0;
+      setRace(`❌ Too slow: ${t.toFixed(2)}s (limit ${TIME_TRIAL_LIMIT_SEC}s). Press Retry.`);
+      // Keep overlay open so user can retry immediately
+    }
+  });
+}
+
+
+async function runRaceTx(){
+      const ok = await ensureAmoyUI();
+      if(!ok) return;
+
+      if(!selectedCarId){
+        setRace("Select a car before racing.");
+        return;
+      }
+      if(selectedCarIsRetired){
+        setRunRaceButtonState();
+        setRace("This car is RETIRED and cannot race.");
+        return;
+      }
+
+      if(isCooldownActive()){
+        setRunRaceButtonState();
+        const now = Math.floor(Date.now()/1000);
+        const left = cooldownUntil - now;
+        setRace(`Cooldown activo. Próxima carrera en ${fmtTime(left)}.`);
+        return;
+      }
+
+      try{
+        $("btnRace").disabled = true;
+
+        // snapshot pre-state to compute reward (MR_JUEGO doesn't emit RaceResult)
+        const pre = await getCarView(selectedCarId);
+
+        // quick pool check (helps explain the common revert)
+        const poolBal = await provider.getBalance(GAME_ADDRESS);
+        if(poolBal <= 0n){
+          setRace("Pool is empty. Minting a car funds the pool (10 POL).");
+        }
+
+        showRaceOverlay("confirm", selectedCarId, selectedCarRarity);
+        setStatus(`Sending race tx for car #${selectedCarId}… Confirm in MetaMask.`);
+        setRace("Transaction pending…");
+
+        // NOTE: On Amoy, MetaMask can fail with custom EIP-1559 overrides.
+        // We send the tx without fee overrides and let MetaMask estimate fees.
+                // NOTE: Amoy can reject txs if the priority fee (tip) is below a moving minimum.
+        // We apply safe minimum EIP-1559 fees to avoid: "gas tip cap ... minimum needed ..."
+        const fees = await getFeeOverrides();
+
+        let gasLimit = null;
+        try{
+          const est = await game.race.estimateGas(selectedCarId, fees);
+          gasLimit = (est * 12n) / 10n;
+        }catch{}
+
+        const tx = gasLimit
+          ? await game.race(selectedCarId, { ...fees, gasLimit })
+          : await game.race(selectedCarId, { ...fees });
+
+lastTxByCar.set(selectedCarId, tx.hash);
+
+        setStatus(`Race pending… ${tx.hash}`);
+        showRaceOverlay("mining", selectedCarId, selectedCarRarity);
+        await tx.wait();
+
+        // read post-state and compute reward
+        const post = await getCarView(selectedCarId);
+        const reward = (post.returnedAmount >= pre.returnedAmount)
+          ? (post.returnedAmount - pre.returnedAmount)
+          : 0n;
+
+        const pos = positionFromReward(reward);
+
+        setRace(
+          `Reward: ${formatPOL(reward)}\n` +
+          `Races left: ${post.racesLeft}\n` +
+          `Total returned: ${formatPOL(post.returnedAmount)}\n` +
+          `Tx: ${tx.hash}`
+        );
+
+        const imgUrl = imageByCar.get(selectedCarId) || null;
+        hideRaceOverlay();
+        setModalResult({
+          tokenId: selectedCarId,
+          position: pos,
+          rewardWei: reward,
+          racesLeft: post.racesLeft,
+          returnedAmount: post.returnedAmount,
+          txHash: tx.hash,
+          imageUrl: imgUrl
+        });
+        showModal();
+
+        await refreshPool();
+        await selectCar(selectedCarId);
+
+        setStatus("Race complete. UI updated.");
+      }catch(e){
+        console.error("Race error:", e);
+        const deepMsg =
+          e?.info?.error?.message ||
+          e?.error?.message ||
+          e?.data?.message ||
+          e?.cause?.message ||
+          null;
+
+        setStatus("Race failed: " + (deepMsg || e?.shortMessage || e?.message || "Unknown error"));
+        setRace("Race failed. Open F12 → Console to see the full error details.");
+      }finally{
+        hideRaceOverlay();
+        await ensureAmoyUI();
+        setRunRaceButtonState();
+      }
+    }
+
+    
+    // Wrapper: gate Run Race behind the Time Trial (frontend-only)
+async function runRace(){
+  // If base conditions disabled the button (cooldown/retired/not selected), do nothing
+  if($("btnRace").disabled) return;
+
+  if(!selectedCarId){
+    setRace("Select a car before racing.");
+    return;
+  }
+
+  // If not unlocked, open the embedded Time Trial (inside MetaMask browser)
+  if(!isTimeTrialUnlocked()){
+    setRace(`Complete the Time Trial (≤ ${TIME_TRIAL_LIMIT_SEC}s) to unlock racing.`);
+    openTimeTrialModal();
+    return;
+  }
+
+  // consume unlock so you must replay next time
+  clearTimeTrialUnlock();
+  return await runRaceTx();
+}
+
+
+/******************************************************************
+     * Pool display
+     * MR_JUEGO has no poolBalance(); pool is simply address(this).balance
+     ******************************************************************/
+    async function refreshPool(){
+      const el = $("poolChip");
+      if(!el) return;
+
+      if(!provider || !isOwner){
+        el.textContent = "Pool: —";
+        return;
+      }
+      try{
+        const bal = await provider.getBalance(GAME_ADDRESS);
+        el.textContent = "Pool: " + formatPOL(bal);
+      }catch{
+        el.textContent = "Pool: —";
+      }
+    }
+
+    async function withdrawPoolAdmin(){
+      const ok = await ensureAmoyUI();
+      if(!ok) return;
+      if(!game || !isOwner){
+        setStatus("Withdraw is only available to the owner.");
+        return;
+      }
+
+      try{
+        $("btnWithdraw").disabled = true;
+        setStatus("Preparing withdraw…");
+
+        const pb = await provider.getBalance(GAME_ADDRESS);
+        if(pb <= 0n){
+          setStatus("Pool is empty.");
+          return;
+        }
+
+        const defaultAmount = ethers.formatEther(pb);
+        const input = prompt(
+          "Withdraw amount in POL\n\nLeave blank to withdraw FULL pool:\n" + defaultAmount,
+          ""
+        );
+
+        if(input === null){
+          setStatus("Withdraw cancelled.");
+          return;
+        }
+
+        const amtWei = (String(input).trim() === "") ? pb : ethers.parseEther(String(input).trim());
+        if(amtWei <= 0n){
+          setStatus("Invalid amount.");
+          return;
+        }
+
+        const to = gameOwner || userAddress;
+        const fees = await getFeeOverrides();
+        const overrides = { ...fees };
+
+        try{
+          const est = await game.withdrawPool.estimateGas(to, amtWei, overrides);
+          overrides.gasLimit = (est * 12n) / 10n;
+        }catch{}
+
+        setStatus("Withdrawing… Confirm in MetaMask.");
+        const tx = await game.withdrawPool(to, amtWei, overrides);
+        setStatus(`Withdraw pending… ${tx.hash}`);
+        await tx.wait();
+        setStatus("Withdraw confirmed.");
+        await refreshPool();
+      }catch(e){
+        setStatus("Withdraw failed: " + (e?.shortMessage || e?.message || "Unknown error"));
+      }finally{
+        if($("btnWithdraw")) $("btnWithdraw").disabled = false;
+      }
+    }
+
+    /******************************************************************
+     * Connect
+     ******************************************************************/
+    async function connectWallet(){
+      if(!window.ethereum){
+        setStatus("MetaMask not found. Install it first.");
+        return;
+      }
+
+      try{
+        setStatus("Connecting wallet…");
+        provider = new ethers.BrowserProvider(window.ethereum);
+
+        const accounts = await provider.send("eth_requestAccounts", []);
+        userAddress = accounts?.[0] || null;
+
+        signer = await provider.getSigner();
+        cars = new ethers.Contract(CARS_ADDRESS, CARS_ABI, signer);
+        game = new ethers.Contract(GAME_ADDRESS, GAME_ABI, signer);
+
+        // load constants (needed because MR_JUEGO initializes lazily)
+        await loadGameConstants();
+
+        setStatus("Wallet connected.");
+        await ensureAmoyUI();
+
+        // Resolve on-chain game owner and gate admin UI (pool + withdraw)
+        try{
+          gameOwner = await game.owner();
+          isOwner = !!(gameOwner && userAddress && gameOwner.toLowerCase() === userAddress.toLowerCase());
+        }catch{
+          gameOwner = null;
+          isOwner = false;
+        }
+        setAdminUI();
+        await refreshPool();
+
+        $("btnLoadGarage").disabled = false;
+        $("btnMint").disabled = false;
+
+      }catch(e){
+        setStatus("Connect failed: " + (e?.shortMessage || e?.message || "Unknown error"));
+      }
+    }
+
+    /******************************************************************
+     * Listeners
+     ******************************************************************/
+    function attachListeners(){
+      $("btnConnect").addEventListener("click", connectWallet);
+
+      $("btnSwitch").addEventListener("click", async ()=>{
+        try{
+          setStatus("Switching to Amoy…");
+          await switchToAmoy();
+          await refreshPool();
+          setRunRaceButtonState();
+        }catch(e){
+          setStatus("Switch failed: " + (e?.shortMessage || e?.message || "Unknown error"));
+        }
+      });
+
+      $("btnLoadGarage").addEventListener("click", async ()=>{
+        try{
+          $("btnLoadGarage").disabled = true;
+          await loadGarage();
+        }catch(e){
+          setStatus("Load garage failed: " + (e?.shortMessage || e?.message || "Unknown error"));
+        }finally{
+          $("btnLoadGarage").disabled = false;
+        }
+      });
+
+      $("btnMint").addEventListener("click", mintCar);
+      $("btnRace").addEventListener("click", runRace);
+      $("btnWithdraw").addEventListener("click", withdrawPoolAdmin);
+
+      $("modalCloseBtn").addEventListener("click", hideModal);
+      $("modalOkBtn").addEventListener("click", hideModal);
+      $("resultModal").addEventListener("click", (e)=>{
+        if(e.target && e.target.id === "resultModal") hideModal();
+      });
+      document.addEventListener("keydown", (e)=>{
+        if(e.key === "Escape") hideModal();
+      });
+
+      if(window.ethereum){
+        window.ethereum.on("accountsChanged", async (accs)=>{
+          userAddress = accs?.[0] || null;
+          try{
+            gameOwner = game ? await game.owner() : null;
+            isOwner = !!(gameOwner && userAddress && gameOwner.toLowerCase() === userAddress.toLowerCase());
+          }catch{
+            gameOwner = null;
+            isOwner = false;
+          }
+          setAdminUI();
+
+          selectedCarId = null;
+          selectedCarIsRetired = false;
+          clearGarage();
+          setSelectedDetails({});
+          setRace("Select a car to begin.");
+          lastTxByCar.clear();
+          hideModal();
+
+          if(cooldownTimer){ clearInterval(cooldownTimer); cooldownTimer = null; }
+          cooldownUntil = 0;
+          setRunRaceButtonState();
+          await ensureAmoyUI();
+          await refreshPool();
+        });
+
+        window.ethereum.on("chainChanged", async ()=>{
+          try{
+            gameOwner = game ? await game.owner() : null;
+            isOwner = !!(gameOwner && userAddress && gameOwner.toLowerCase() === userAddress.toLowerCase());
+          }catch{
+            gameOwner = null;
+            isOwner = false;
+          }
+          setAdminUI();
+
+          selectedCarId = null;
+          selectedCarIsRetired = false;
+          clearGarage();
+          setSelectedDetails({});
+          setRace("Select a car to begin.");
+          hideModal();
+
+          if(cooldownTimer){ clearInterval(cooldownTimer); cooldownTimer = null; }
+          cooldownUntil = 0;
+          setRunRaceButtonState();
+          await ensureAmoyUI();
+          await refreshPool();
+        });
+      }
+    }
+
+    /******************************************************************
+     * Init
+     ******************************************************************/
+    (function init(){
+      attachListeners();
+      attachTimeTrialMessageListener();
+      setSelectedDetails({});
+      selectedCarId = null;
+      selectedCarIsRetired = false;
+      setRunRaceButtonState();
+      setRace("Select a car to begin.");
+      setStatus("Ready. Connect wallet.");
+    })();
+  </script>
+
+
+  <!-- TIME TRIAL (Embedded iframe overlay for MetaMask mobile) -->
+  <div class="tt-overlay" id="ttOverlay" aria-hidden="true">
+    <div class="tt-topbar">
+      <div class="tt-title">
+        <div class="t1" id="ttTitle">Time Trial</div>
+        <div class="t2" id="ttSub">Finish within the limit to unlock Run Race.</div>
+      </div>
+      <div class="tt-actions">
+        <button class="tt-btn" id="ttRetryBtn" type="button">Retry</button>
+        <button class="tt-btn" id="ttCloseBtn" type="button">Close</button>
+      </div>
+    </div>
+    <div class="tt-frame-wrap">
+      <iframe class="tt-iframe" id="ttFrame" title="MicroRacers Time Trial" allow="fullscreen"></iframe>
+    </div>
+  </div>
+
+</body>
+</html>
