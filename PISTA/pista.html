@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>MicroRacers POL — Pista 2 (Móvil)</title>
+<style>
+  :root{
+    --bg:#0b0e14;
+    --panel:#111622;
+    --panel2:#151b2a;
+    --text:#e6e6e6;
+    --muted:#aab0c0;
+    --border:#2c3140;
+
+    --ok:#37d67a;
+    --warn:#ffcc00;
+    --bad:#ff4d4d;
+
+    --btnbg:rgba(17,22,34,.75);
+    --btnbd:rgba(255,255,255,.12);
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background: radial-gradient(circle at top, #121a2a, #05070d 60%);
+    color:var(--text);
+    font-family: Arial, Helvetica, sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:4px 8px 0;
+    height:100vh;
+    overflow:hidden;
+  }
+  h1{ display:none; }
+
+  /* HUD compacto */
+  #hud{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:center;
+    margin:6px 0 6px;
+    font-size:12px;
+    padding:6px 10px;
+    background:rgba(17,22,34,.88);
+    border:1px solid var(--border);
+    border-radius:12px;
+    box-shadow: 0 10px 22px rgba(0,0,0,.30);
+  }
+  .hudActions{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    margin-left:6px;
+  }
+  .hudBtn{
+    background:rgba(15,20,34,.85);
+    color:#fff;
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:12px;
+    padding:6px 10px;
+    font-weight:800;
+    font-size:12px;
+    letter-spacing:.4px;
+    cursor:pointer;
+  }
+  .hudBtn:active{ transform:scale(.97); }
+
+  #wrap{
+    position:relative;
+    width:min(1100px, 99vw);
+    border:1px solid var(--border);
+    border-radius:14px;
+    overflow:hidden;
+    background:rgba(21,27,42,.95);
+    box-shadow: 0 16px 40px rgba(0,0,0,.42);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  canvas{
+    display:block;
+    width:auto;
+    height:auto;
+    max-width:100%;
+    max-height:100%;
+    background:var(--panel2);
+    image-rendering:auto;
+    touch-action:none;
+  }
+  #msg{
+    margin:4px 0 6px;
+    font-size:12px;
+    min-height:16px;
+    color:var(--muted);
+    text-align:center;
+    white-space:pre-line;
+  }
+
+  #overlay{
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:14px;
+    background:rgba(0,0,0,.72);
+    z-index:50;
+  }
+  #overlay .box{
+    width:min(820px, 96vw);
+    background:#0f1422;
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:14px 14px 12px;
+  }
+  #overlay .title{ font-weight:900; color:var(--bad); margin-bottom:6px; }
+  #overlay pre{
+    margin:0;
+    white-space:pre-wrap;
+    word-break:break-word;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+    font-size:12px;
+    color:#eaeaea;
+    opacity:.96;
+    line-height:1.35;
+  }
+
+  /* Mobile controls (compactos) */
+  #controls{
+    position:fixed;
+    left:0; right:0; bottom:0;
+    padding:6px 8px 8px;
+    display:flex;
+    gap:8px;
+    justify-content:space-between;
+    align-items:flex-end;
+    pointer-events:none;
+  }
+  .pad{ display:flex; gap:8px; pointer-events:none; }
+  .btn{
+    pointer-events:auto;
+    width:56px;
+    height:56px;
+    border-radius:14px;
+    border:1px solid var(--btnbd);
+    background:var(--btnbg);
+    backdrop-filter: blur(6px);
+    color:var(--text);
+    font-weight:800;
+    font-size:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action:none;
+    box-shadow: 0 8px 18px rgba(0,0,0,.32);
+  }
+  .btn:active{ transform: scale(0.98); }
+  .btn.small{ width:44px; height:44px; border-radius:12px; font-size:11px; }
+  .btn.green{ border-color: rgba(55,214,122,.45); }
+  .btn.red{ border-color: rgba(255,77,77,.45); }
+  .btn.yellow{ border-color: rgba(255,204,0,.45); }
+
+  #hint{
+    margin:0 0 58px;
+    font-size:11px;
+    color:var(--muted);
+    opacity:.85;
+    text-align:center;
+  }
+  @media (min-width: 900px){
+    #controls{ bottom:10px; }
+    #hint{ margin-bottom: 76px; }
+  }
+
+  /* --- Embed mode (inside game modal) --- */
+  body.embed{ padding:0; height:100vh; overflow:hidden; }
+  body.embed #hint{ display:none; }
+  body.embed #hud{ margin:6px 10px 6px; max-width:none; }
+  body.embed #wrap{
+    width: 100vw;
+    border-left:0; border-right:0;
+    border-radius:0;
+    box-shadow:none;
+  }
+</style>
+</head>
+<body>
+
+<h1>MicroRacers POL — Time Trial (Pista 2)</h1>
+<div id="hud">
+  <div>🚗 Auto: <b>#<span id="carId">—</span></b></div>
+  <div>🎯 Objetivo: <b>≤ <span id="goal">35</span>s</b></div>
+  <div>⏱ Tiempo: <b><span id="time">0.00</span>s</b></div>
+  <div>🧱 Choques: <b><span id="hits">0</span></b></div>
+  <div>🔄 <b><span id="resetTip">Enter/Retry</span></b></div>
+
+  <div class="hudActions">
+    <button id="btnRetryTop" class="hudBtn">RETRY</button>
+    <button id="btnCloseTop" class="hudBtn">CLOSE</button>
+  </div>
+
+</div>
+
+<div id="wrap">
+  <canvas id="game"></canvas>
+
+  <div id="overlay">
+    <div class="box">
+      <div class="title">No pude cargar / interpretar el mapa</div>
+      <pre id="overlayText"></pre>
+    </div>
+  </div>
+</div>
+
+<div id="msg"></div>
+<div id="hint">Móvil: usá los botones · PC: WASD/flechas · R=Retroceder · Enter=Retry · Entrá a START para iniciar · Llegá a FINISH</div>
+
+<!-- On-screen controls -->
+<div id="controls" aria-label="Controles">
+  <div class="pad">
+    <div class="btn" id="btnLeft">◀</div>
+    <div class="btn" id="btnRight">▶</div>
+  </div>
+
+  <div class="pad">
+    <div class="btn red" id="btnBrake">FRENO</div>
+    <div class="btn green" id="btnGas">GAS</div>
+  </div>
+
+  <div class="pad">
+    <div class="btn small yellow" id="btnReverse">R</div>
+    <div class="btn small" id="btnRetry">RETRY</div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   URL PARAMS + EMBED MODE
+============================================================ */
+const qs = new URLSearchParams(location.search);
+const EMBED = (qs.get('embed')==='1');
+if(EMBED) document.body.classList.add('embed');
+
+const CAR_ID = qs.get('car') || '';
+const LIMIT_SEC = Number(qs.get('limit') || 35);
+document.getElementById('carId').textContent = CAR_ID ? String(CAR_ID) : '—';
+document.getElementById('goal').textContent = String(Number.isFinite(LIMIT_SEC) ? LIMIT_SEC : 35);
+
+/* ============================================================
+   CONFIG (archivos en la misma carpeta)
+============================================================ */
+const MAP_JSON  = "pista2.json";
+const BG_IMAGE  = "basepista.png";
+const CAR_IMAGE = "car.png";
+
+// Ajuste fino de manejo (similar a pista.html)
+const TUNE = {
+  accel: 0.075,
+  brake: 0.12,
+  reverse: 0.14,
+  turn: 0.050,
+  friction: 0.975,
+  maxFwd: 3.0,
+  maxRev: -1.6,
+  colW: 14,
+  colH: 24,
+};
+
+// Debug
+const DEBUG_DRAW_WALLS = false;
+const DEBUG_DRAW_COLLIDER = false;
+
+// Tu sprite mira "hacia ARRIBA" por defecto.
+// angle=0 (movimiento) = derecha (→). Para que el sprite (↑) mire →, sumamos +90°.
+const SPRITE_ANGLE_OFFSET = Math.PI / 2;
+
+/* ============================================================
+   DOM
+============================================================ */
+const canvas = document.getElementById("game");
+const wrap = document.getElementById("wrap");
+const ctx = canvas.getContext("2d");
+
+const elTime = document.getElementById("time");
+const elHits = document.getElementById("hits");
+const elMsg  = document.getElementById("msg");
+
+const overlay = document.getElementById("overlay");
+const overlayText = document.getElementById("overlayText");
+
+const elHud = document.getElementById("hud");
+const elControls = document.getElementById("controls");
+const elHint = document.getElementById("hint");
+
+/* ============================================================
+   FIT-TO-SCREEN
+============================================================ */
+function fitCanvasToViewport(){
+  if (!canvas.width || !canvas.height) return;
+
+  const hudH = elHud ? elHud.getBoundingClientRect().height : 0;
+  const msgH = elMsg ? elMsg.getBoundingClientRect().height : 0;
+  const hintH = elHint ? elHint.getBoundingClientRect().height : 0;
+  const controlsH = elControls ? elControls.getBoundingClientRect().height : 0;
+
+  const padding = EMBED ? 4 : 10;
+  const extraSafe = 6;
+
+  let availableH = window.innerHeight - hudH - msgH - hintH - controlsH - padding - extraSafe;
+  availableH = Math.max(220, availableH);
+
+  wrap.style.height = Math.floor(availableH) + "px";
+
+  const wrapW = wrap.getBoundingClientRect().width;
+  const wrapH = availableH;
+
+  const aspect = canvas.width / canvas.height;
+
+  // MODO "CONTAIN": se ve la pista completa (sin recortes)
+  let drawW = wrapW;
+  let drawH = drawW / aspect;
+
+  if (drawH > wrapH){
+    drawH = wrapH;
+    drawW = drawH * aspect;
+  }
+
+  canvas.style.width = Math.floor(drawW) + "px";
+  canvas.style.height = Math.floor(drawH) + "px";
+}
+
+window.addEventListener("resize", () => fitCanvasToViewport(), { passive:true });
+window.addEventListener("orientationchange", () => setTimeout(fitCanvasToViewport, 50), { passive:true });
+
+/* ============================================================
+   INPUT (keyboard + touch)
+============================================================ */
+const keys = {};
+addEventListener("keydown", (e) => {
+  keys[e.key.toLowerCase()] = true;
+  if (e.key === "Enter") resetRace();
+});
+addEventListener("keyup", (e) => keys[e.key.toLowerCase()] = false);
+
+function bindHold(btn, keyName){
+  const on = (ev) => { ev.preventDefault(); keys[keyName] = true; };
+  const off = (ev) => { ev.preventDefault(); keys[keyName] = false; };
+
+  btn.addEventListener("pointerdown", on);
+  btn.addEventListener("pointerup", off);
+  btn.addEventListener("pointercancel", off);
+  btn.addEventListener("pointerleave", off);
+}
+
+bindHold(document.getElementById("btnLeft"), "left");
+bindHold(document.getElementById("btnRight"), "right");
+bindHold(document.getElementById("btnGas"), "up");
+bindHold(document.getElementById("btnBrake"), "down");
+bindHold(document.getElementById("btnReverse"), "rev");
+document.getElementById("btnRetry").addEventListener("pointerdown", (ev) => { ev.preventDefault(); resetRace(); });
+
+// Evita scroll en móvil mientras jugás
+document.addEventListener("touchmove", (e) => e.preventDefault(), { passive:false });
+
+// HUD buttons
+document.getElementById("btnRetryTop").addEventListener("click", () => resetRace());
+document.getElementById("btnCloseTop").addEventListener("click", () => {
+  // En embed/Metamask a veces window.close() no funciona; avisamos al game y además intentamos cerrar.
+  postToGame({ type: "MICRORACERS_TIME_TRIAL_CLOSE", car: CAR_ID });
+  try{ window.close(); }catch(e){}
+});
+
+
+/* ============================================================
+   HELPERS (map parsing / collisions)
+============================================================ */
+function norm(s){ return (s || "").trim(); }
+function normU(s){ return norm(s).toUpperCase(); }
+function normL(s){ return norm(s).toLowerCase(); }
+
+function showError(title, details){
+  overlay.style.display = "flex";
+  overlayText.textContent =
+`${title}
+
+Detalles:
+${details}
+
+Checklist:
+- pista2_final.html, pista2.json, basepista.png y car.png en la MISMA carpeta
+- Abrí desde servidor local (Live Server)
+- JSON: capa objectgroup con START/FINISH (por name) o property type=start/finish
+- JSON: capa Walls (objectgroup) con rects o polygons
+`;
+}
+
+function propValue(obj, key){
+  const p = obj?.properties?.find(x => x.name === key);
+  return p ? p.value : null;
+}
+
+function rectsOverlap(a, b){
+  return (a.x < b.x + b.width &&
+          a.x + a.w > b.x &&
+          a.y < b.y + b.height &&
+          a.y + a.h > b.y);
+}
+
+function pointInPolygon(px, py, points){
+  let inside = false;
+  for (let i=0, j=points.length-1; i<points.length; j=i++){
+    const xi = points[i].x, yi = points[i].y;
+    const xj = points[j].x, yj = points[j].y;
+    const intersect = ((yi > py) !== (yj > py)) &&
+      (px < (xj - xi) * (py - yi) / (yj - yi + 1e-12) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function carHitsObject(testCar, obj){
+  if (!obj) return false;
+
+  if (obj.polygon && Array.isArray(obj.polygon)){
+    const poly = obj.polygon.map(p => ({ x: obj.x + p.x, y: obj.y + p.y }));
+    const corners = [
+      {x:testCar.x,             y:testCar.y},
+      {x:testCar.x + testCar.w, y:testCar.y},
+      {x:testCar.x,             y:testCar.y + testCar.h},
+      {x:testCar.x + testCar.w, y:testCar.y + testCar.h},
+    ];
+    return corners.some(c => pointInPolygon(c.x, c.y, poly));
+  }
+
+  return rectsOverlap(testCar, obj);
+}
+
+/* ============================================================
+   STATE
+============================================================ */
+let mapData = null;
+let bgImg = null;
+let carImg = null;
+
+let walls = [];
+let startZone = null;
+let finishZone = null;
+
+let hits = 0;
+let startTime = null;
+let finished = false;
+
+let car = null;
+
+/* ============================================================
+   LOADERS
+============================================================ */
+function loadImage(src){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("No pude cargar la imagen: " + src));
+    img.src = src;
+    if (img.complete) resolve(img);
+  });
+}
+async function loadMap(){
+  const r = await fetch(MAP_JSON, { cache: "no-store" });
+  if (!r.ok) throw new Error("No pude leer " + MAP_JSON + " (HTTP " + r.status + ")");
+  return await r.json();
+}
+
+/* ============================================================
+   MAP PARSE
+============================================================ */
+function parseMap(data){
+  mapData = data;
+
+  const tw = (mapData.tilewidth || 32);
+  const th = (mapData.tileheight || 32);
+  canvas.width  = (mapData.width  || 30) * tw;
+  canvas.height = (mapData.height || 20) * th;
+
+  walls = [];
+  startZone = null;
+  finishZone = null;
+
+  for (const layer of (mapData.layers || [])){
+    if (layer.type !== "objectgroup") continue;
+
+    for (const obj of (layer.objects || [])){
+      if (normL(layer.name) === "walls") walls.push(obj);
+
+      const t = normL(propValue(obj, "type") || "");
+      const n = normU(obj.name);
+
+      if (t === "start" || n === "START") startZone = obj;
+      if (t === "finish" || n === "FINISH") finishZone = obj;
+    }
+  }
+
+  if (!startZone)  throw new Error("No encontré START (name=START o property type=start).");
+  if (!finishZone) throw new Error("No encontré FINISH (name=FINISH o property type=finish).");
+}
+
+/* ============================================================
+   PARENT INTEGRATION (game.html)
+============================================================ */
+function postToGame(payload){
+  try{
+    if(window.opener && !window.opener.closed){
+      window.opener.postMessage(payload, "*");
+      return;
+    }
+  }catch(e){}
+  try{
+    window.parent && window.parent.postMessage(payload, "*");
+  }catch(e){}
+}
+
+postToGame({ type:"MICRORACERS_TIME_TRIAL_READY", car: CAR_ID, limit: LIMIT_SEC });
+
+window.addEventListener("message", (ev) => {
+  const d = ev.data || {};
+  if (!d || typeof d !== "object") return;
+
+  if (d.type === "MICRORACERS_TIME_TRIAL_RESET"){
+    resetRace();
+    return;
+  }
+
+  if (d.type === "MICRORACERS_TIME_TRIAL_START"){
+    if (startZone){
+      car.x = startZone.x + startZone.width/2;
+      car.y = startZone.y + startZone.height/2;
+      car.speed = 0;
+      car.angle = 0;
+      startTime = performance.now();
+      finished = false;
+      window.__mrSentResult = false;
+      elMsg.textContent = "⏱️ Iniciado. Llegá a FINISH.";
+      updateHUD();
+    }
+    return;
+  }
+
+  if (d.type === "MICRORACERS_TIME_TRIAL_INPUT"){
+    const enabled = !!d.enabled;
+    window.__mrInputEnabled = enabled;
+    if (!enabled){
+      for (const k in keys) keys[k] = false;
+    }
+    return;
+  }
+});
+
+
+document.getElementById("btnCloseTop").onclick = () => {
+  try{
+    window.close();
+  }catch(e){}
+};
+
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden){
+    for (const k in keys) keys[k] = false;
+    postToGame({ type:"MICRORACERS_TIME_TRIAL_HIDDEN" });
+  }
+});
+
+/* ============================================================
+   RESET
+============================================================ */
+function resetRace(){
+  if (!startZone) return;
+
+  fitCanvasToViewport();
+
+  car = {
+    x: startZone.x + startZone.width/2,
+    y: startZone.y + startZone.height/2,
+    w: TUNE.colW,
+    h: TUNE.colH,
+    speed: 0,
+    angle: 0,
+  };
+
+  hits = 0;
+  startTime = null;
+  finished = false;
+  window.__mrSentResult = false;
+
+  updateHUD();
+  elMsg.textContent = `👉 Entrá a START para iniciar el cronómetro. Objetivo: ≤ ${Number.isFinite(LIMIT_SEC)?LIMIT_SEC:35}s.`;
+}
+
+/* ============================================================
+   HUD
+============================================================ */
+function updateHUD(){
+  if (startTime && !finished){
+    elTime.textContent = ((performance.now() - startTime)/1000).toFixed(2);
+  } else if (!startTime){
+    elTime.textContent = "0.00";
+  }
+  elHits.textContent = String(hits);
+}
+
+/* ============================================================
+   DRAW: START SIGN + FINISH CHECKERED AREA
+============================================================ */
+function drawStartSign(){
+  if (!startZone) return;
+
+  const x = startZone.x;
+  const y = startZone.y;
+  const w = startZone.width;
+  const h = startZone.height;
+
+  const pad = 6;
+  const rx = x + pad;
+  const ry = y + pad;
+  const rw = Math.max(10, w - pad*2);
+  const rh = Math.max(10, h - pad*2);
+
+  ctx.save();
+  ctx.fillStyle = "rgba(10, 14, 20, 0.55)";
+  ctx.fillRect(rx, ry, rw, rh);
+
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(255,255,255,0.65)";
+  ctx.strokeRect(rx, ry, rw, rh);
+
+  const fontSize = Math.max(12, Math.min(rh * 0.65, 26));
+  ctx.font = `800 ${fontSize}px Arial`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "rgba(0,0,0,0.75)";
+  ctx.strokeText("START", x + w/2, y + h/2);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText("START", x + w/2, y + h/2);
+  ctx.restore();
+}
+
+function drawFinishCheckered(){
+  if (!finishZone) return;
+
+  const x = finishZone.x;
+  const y = finishZone.y;
+  const w = finishZone.width;
+  const h = finishZone.height;
+
+  const cols = 10;
+  const rows = 6;
+  const cw = w / cols;
+  const ch = h / rows;
+
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.fillRect(x, y, w, h);
+
+  for (let r=0; r<rows; r++){
+    for (let c=0; c<cols; c++){
+      const isBlack = ((r + c) % 2 === 0);
+      ctx.fillStyle = isBlack ? "rgba(20,20,20,0.85)" : "rgba(245,245,245,0.85)";
+      ctx.fillRect(x + c*cw, y + r*ch, cw, ch);
+    }
+  }
+
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(0,0,0,0.65)";
+  ctx.strokeRect(x, y, w, h);
+  ctx.restore();
+}
+
+/* ============================================================
+   UPDATE + COLLISIONS
+============================================================ */
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+function update(){
+  if (!mapData || finished || !car) return;
+
+  if (window.__mrInputEnabled === false){
+    car.speed *= 0.95;
+    updateHUD();
+    return;
+  }
+
+  const up = keys["arrowup"] || keys["w"] || keys["up"];
+  const down = keys["arrowdown"] || keys["s"] || keys["down"];
+  const rev = keys["r"] || keys["rev"];
+  const left = keys["arrowleft"] || keys["a"] || keys["left"];
+  const right = keys["arrowright"] || keys["d"] || keys["right"];
+
+  if (up) car.speed += TUNE.accel;
+  if (down) car.speed -= TUNE.brake;
+  if (rev) car.speed -= TUNE.reverse;
+
+  if (left) car.angle -= TUNE.turn;
+  if (right) car.angle += TUNE.turn;
+
+  car.speed *= TUNE.friction;
+  car.speed = clamp(car.speed, TUNE.maxRev, TUNE.maxFwd);
+
+  const nx = car.x + Math.cos(car.angle) * car.speed;
+  const ny = car.y + Math.sin(car.angle) * car.speed;
+
+  const testCar = { x: nx - car.w/2, y: ny - car.h/2, w: car.w, h: car.h };
+
+  let hit = false;
+  for (const w of walls){
+    if (carHitsObject(testCar, w)){
+      hit = true;
+      break;
+    }
+  }
+
+  if (!hit){
+    car.x = nx;
+    car.y = ny;
+  } else {
+    hits++;
+    car.speed *= -0.30;
+  }
+
+  const curCar = { x: car.x - car.w/2, y: car.y - car.h/2, w: car.w, h: car.h };
+
+  if (!startTime && carHitsObject(curCar, startZone)){
+    startTime = performance.now();
+    elMsg.textContent = "⏱️ Iniciado. Llegá a FINISH.";
+  }
+
+  if (startTime && !finished){
+    const elapsed = (performance.now() - startTime) / 1000;
+    if (elapsed > (Number.isFinite(LIMIT_SEC)?LIMIT_SEC:35)){
+      finished = true;
+      elMsg.textContent = `⏱️ Tiempo agotado — Objetivo: ≤ ${Number.isFinite(LIMIT_SEC)?LIMIT_SEC:35}s
+Enter/RETRY para reintentar.`;
+    }
+  }
+
+  if (startTime && !finished && carHitsObject(curCar, finishZone)){
+    finished = true;
+    const t = ((performance.now() - startTime)/1000).toFixed(2);
+    elMsg.textContent = `🏁 Finalizaste — Tiempo: ${t}s (objetivo ≤ ${Number.isFinite(LIMIT_SEC)?LIMIT_SEC:35}s) — Choques: ${hits}
+Si no se cierra solo, volvé a la pestaña del juego.`;
+
+    if(!window.__mrSentResult){
+      window.__mrSentResult = true;
+      try{
+        postToGame({
+          type: "MICRORACERS_TIME_TRIAL_DONE",
+          car: CAR_ID,
+          limit: LIMIT_SEC,
+          timeSec: Number(t),
+          hits: hits
+        });
+        setTimeout(()=>{ try{ window.close(); }catch(e){} }, 600);
+      }catch(e){}
+    }
+  }
+
+  updateHUD();
+}
+
+/* ============================================================
+   DRAW
+============================================================ */
+function draw(){
+  if (!mapData || !car) return;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if (bgImg){
+    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+  }else{
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
+  drawFinishCheckered();
+  drawStartSign();
+
+  if (DEBUG_DRAW_WALLS){
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = "#00ffcc";
+    ctx.lineWidth = 2;
+    for (const w of walls){
+      if (w.polygon){
+        ctx.beginPath();
+        const p0 = w.polygon[0];
+        ctx.moveTo((w.x + p0.x), (w.y + p0.y));
+        for (let i=1;i<w.polygon.length;i++){
+          const p = w.polygon[i];
+          ctx.lineTo((w.x + p.x), (w.y + p.y));
+        }
+        ctx.closePath();
+        ctx.stroke();
+      } else {
+        ctx.strokeRect(w.x, w.y, w.width, w.height);
+      }
+    }
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.translate(car.x, car.y);
+  ctx.rotate(car.angle + SPRITE_ANGLE_OFFSET);
+
+  const drawW = 34;
+  const drawH = 54;
+
+  if (carImg){
+    ctx.drawImage(carImg, -drawW/2, -drawH/2, drawW, drawH);
+  } else {
+    ctx.fillStyle = "#ffd84d";
+    ctx.fillRect(-drawW/2, -drawH/2, drawW, drawH);
+  }
+  ctx.restore();
+
+  if (DEBUG_DRAW_COLLIDER){
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,0,0,0.9)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(car.x - car.w/2, car.y - car.h/2, car.w, car.h);
+    ctx.restore();
+  }
+}
+
+/* ============================================================
+   LOOP
+============================================================ */
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* ============================================================
+   BOOT
+============================================================ */
+(async function boot(){
+  try{
+    const [data, bg, carSprite] = await Promise.all([
+      loadMap(),
+      loadImage(BG_IMAGE),
+      loadImage(CAR_IMAGE),
+    ]);
+
+    bgImg = bg;
+    carImg = carSprite;
+
+    parseMap(data);
+    resetRace();
+    fitCanvasToViewport();
+
+    requestAnimationFrame(loop);
+
+  }catch(err){
+    console.error(err);
+    showError("Error cargando recursos", String(err && err.message ? err.message : err));
+  }
+})();
+</script>
+</body>
+</html>

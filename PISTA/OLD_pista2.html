@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MicroRacers – Pista 2</title>
+<style>
+  :root { color-scheme: dark; }
+  body{
+    margin:0;
+    background:#0b0f14;
+    height:100vh;
+    display:grid;
+    place-items:center;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  }
+  .wrap{display:flex;flex-direction:column;gap:10px;align-items:center;}
+  canvas{
+    background:#000;
+    border:1px solid #223;
+    border-radius:12px;
+    max-width:96vw;
+    max-height:80vh;
+    image-rendering:auto;
+  }
+  .hud{
+    width:min(980px,96vw);
+    display:flex;
+    gap:10px;
+    align-items:center;
+    justify-content:space-between;
+    background:#111826;
+    border:1px solid #223;
+    border-radius:12px;
+    padding:10px 12px;
+    box-sizing:border-box;
+  }
+  .hud .left{display:flex;flex-direction:column;gap:4px;}
+  .hud .title{font-weight:800;letter-spacing:.3px;}
+  .hud .msg{font-size:13px;opacity:.95;}
+  .hud .right{display:flex;gap:8px;align-items:center;}
+  button{
+    background:#1f2a44;
+    color:#eaf1ff;
+    border:1px solid #2c3b5f;
+    border-radius:10px;
+    padding:8px 10px;
+    cursor:pointer;
+    font-weight:700;
+  }
+  button:hover{filter:brightness(1.12);}
+  .kbd{font-size:12px;opacity:.85;}
+  .err{color:#ffb4b4;}
+  .ok{color:#b9ffcf;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hud">
+    <div class="left">
+      <div class="title">MicroRacers – Pista 2</div>
+      <div id="status" class="msg">Cargando…</div>
+      <div class="kbd">Controles: ↑ ↓ acelerar/frenar · ← → girar · R reiniciar</div>
+    </div>
+    <div class="right">
+      <button id="btnRestart">RESTART</button>
+    </div>
+  </div>
+  <canvas id="game"></canvas>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG (archivos en la misma carpeta)
+============================================================ */
+const MAP_JSON  = "pista2.json";
+const BG_IMAGE  = "basepista.png";
+const CAR_IMAGE = "car.png";
+
+// Si querés que en móvil entre mejor, podés bajar a 0.9/0.8
+const SCALE = 1;
+
+// Límite del time trial
+const MAX_TIME = 35;
+
+// Debug visual (muros/collider)
+const DEBUG_DRAW_WALLS = false;
+const DEBUG_DRAW_COLLIDER = false;
+
+/* ============================================================
+   CANVAS + HUD
+============================================================ */
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const statusEl = document.getElementById("status");
+function setStatus(msg, cls=""){ statusEl.className = "msg " + cls; statusEl.textContent = msg; }
+
+/* ============================================================
+   STATE
+============================================================ */
+let mapData = null;
+let walls = [];
+let startZone = null;
+let finishZone = null;
+
+let carImg = null;
+let bgImg  = null;
+
+let car = null;
+let startTime = null;
+let finished = false;
+
+// Tu sprite mira "hacia ARRIBA" por defecto.
+// En nuestro movimiento, angle=0 significa "→" (derecha).
+// Para que el sprite (↑) se vea mirando →, aplicamos +90° al dibujar.
+const SPRITE_ANGLE_OFFSET = Math.PI / 2;
+
+/* ============================================================
+   HELPERS
+============================================================ */
+function propValue(obj, key){
+  const p = obj?.properties?.find(x => x.name === key);
+  return p ? p.value : null;
+}
+
+function rectsOverlap(a, b){
+  return (a.x < b.x + b.width &&
+          a.x + a.w > b.x &&
+          a.y < b.y + b.height &&
+          a.y + a.h > b.y);
+}
+
+// Polygon collision (simple: corners inside polygon)
+function pointInPolygon(px, py, points){
+  let inside = false;
+  for (let i=0, j=points.length-1; i<points.length; j=i++){
+    const xi = points[i].x, yi = points[i].y;
+    const xj = points[j].x, yj = points[j].y;
+    const intersect = ((yi > py) !== (yj > py)) &&
+      (px < (xj - xi) * (py - yi) / (yj - yi + 1e-12) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function carHitsObject(testCar, obj){
+  if (obj.polygon && Array.isArray(obj.polygon)){
+    const poly = obj.polygon.map(p => ({ x: obj.x + p.x, y: obj.y + p.y }));
+    const corners = [
+      {x:testCar.x,             y:testCar.y},
+      {x:testCar.x + testCar.w, y:testCar.y},
+      {x:testCar.x,             y:testCar.y + testCar.h},
+      {x:testCar.x + testCar.w, y:testCar.y + testCar.h},
+    ];
+    return corners.some(c => pointInPolygon(c.x, c.y, poly));
+  }
+  return rectsOverlap(testCar, obj);
+}
+
+/* ============================================================
+   LOADERS (robustos con cache)
+============================================================ */
+function loadImage(src){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("No pude cargar la imagen: " + src));
+    img.src = src;
+    if (img.complete) resolve(img); // cache-safe
+  });
+}
+
+async function loadMap(){
+  const r = await fetch(MAP_JSON, { cache: "no-store" });
+  if (!r.ok) throw new Error("No pude leer " + MAP_JSON + " (HTTP " + r.status + ")");
+  return await r.json();
+}
+
+/* ============================================================
+   MAP PARSE
+============================================================ */
+function parseMap(data){
+  mapData = data;
+  walls = [];
+  startZone = null;
+  finishZone = null;
+
+  canvas.width  = mapData.width  * mapData.tilewidth  * SCALE;
+  canvas.height = mapData.height * mapData.tileheight * SCALE;
+
+  for (const layer of mapData.layers){
+    if (layer.type !== "objectgroup") continue;
+
+    for (const obj of layer.objects){
+      if (layer.name === "Walls") walls.push(obj);
+
+      const t = propValue(obj, "type");
+      if (t === "start")  startZone  = obj;
+      if (t === "finish") finishZone = obj;
+    }
+  }
+
+  if (!startZone)  throw new Error("No encontré START (objeto con property type=start)");
+  if (!finishZone) throw new Error("No encontré FINISH (objeto con property type=finish)");
+}
+
+function resetCar(){
+  car = {
+    x: startZone.x + startZone.width / 2,
+    y: startZone.y + startZone.height / 2,
+    w: 14,   // collider (lógico)
+    h: 24,   // collider (lógico)
+    speed: 0,
+    // IMPORTANTE: angle=0 = apunta a la derecha (→). Así arranca como pediste.
+    angle: 0
+  };
+  startTime = null;
+  finished = false;
+}
+
+/* ============================================================
+   INPUT
+============================================================ */
+const keys = {};
+window.addEventListener("keydown", (e) => {
+  keys[e.key] = true;
+  if (e.key.toLowerCase() === "r") resetCar();
+});
+window.addEventListener("keyup", (e) => keys[e.key] = false);
+document.getElementById("btnRestart").addEventListener("click", resetCar);
+
+/* ============================================================
+   UPDATE
+============================================================ */
+function update(){
+  if (finished) return;
+  if (!startTime) startTime = performance.now();
+
+  if (keys["ArrowUp"])    car.speed += 0.05;
+  if (keys["ArrowDown"])  car.speed -= 0.05;
+  if (keys["ArrowLeft"])  car.angle -= 0.05;
+  if (keys["ArrowRight"]) car.angle += 0.05;
+
+  car.speed *= 0.98;
+
+  const nx = car.x + Math.cos(car.angle) * car.speed;
+  const ny = car.y + Math.sin(car.angle) * car.speed;
+
+  const testCar = { x: nx - car.w/2, y: ny - car.h/2, w: car.w, h: car.h };
+
+  for (const w of walls){
+    if (carHitsObject(testCar, w)){
+      car.speed = 0;
+      return;
+    }
+  }
+
+  car.x = nx;
+  car.y = ny;
+
+  // Finish detection
+  if (finishZone && carHitsObject(testCar, finishZone)){
+    finished = true;
+    setStatus("🏁 Terminaste la carrera! (R para reiniciar)", "ok");
+    return;
+  }
+
+  // Time limit
+  const elapsed = (performance.now() - startTime) / 1000;
+  if (elapsed > MAX_TIME){
+    finished = true;
+    setStatus("⏱️ Tiempo agotado (R para reiniciar)", "err");
+    return;
+  }
+
+  setStatus(`Corriendo… ${elapsed.toFixed(1)}s / ${MAX_TIME}s · muros: ${walls.length}`, "");
+}
+
+/* ============================================================
+   DRAW HELPERS: START SIGN + FINISH CHECKERED AREA
+============================================================ */
+function drawStartSign(){
+  if (!startZone) return;
+
+  const x = startZone.x * SCALE;
+  const y = startZone.y * SCALE;
+  const w = startZone.width * SCALE;
+  const h = startZone.height * SCALE;
+
+  // Cartel "START" centrado en el área del objeto Start
+  const pad = Math.max(4, 6 * SCALE);
+  const rx = x + pad;
+  const ry = y + pad;
+  const rw = Math.max(10, w - pad*2);
+  const rh = Math.max(10, h - pad*2);
+
+  ctx.save();
+
+  // Fondo del cartel (ligeramente transparente)
+  ctx.fillStyle = "rgba(10, 14, 20, 0.55)";
+  ctx.fillRect(rx, ry, rw, rh);
+
+  // Borde
+  ctx.lineWidth = Math.max(2, 3 * SCALE);
+  ctx.strokeStyle = "rgba(255,255,255,0.65)";
+  ctx.strokeRect(rx, ry, rw, rh);
+
+  // Texto
+  const fontSize = Math.max(12, Math.min(rh * 0.65, 26 * SCALE));
+  ctx.font = `800 ${fontSize}px Arial`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  // Sombra/contorno
+  ctx.lineWidth = Math.max(3, 4 * SCALE);
+  ctx.strokeStyle = "rgba(0,0,0,0.75)";
+  ctx.strokeText("START", x + w/2, y + h/2);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText("START", x + w/2, y + h/2);
+
+  ctx.restore();
+}
+
+function drawFinishCheckered(){
+  if (!finishZone) return;
+
+  const x = finishZone.x * SCALE;
+  const y = finishZone.y * SCALE;
+  const w = finishZone.width * SCALE;
+  const h = finishZone.height * SCALE;
+
+  // Bandera a cuadros que ocupa TODO el rectángulo de Finish
+  const cols = 10;
+  const rows = 6;
+  const cw = w / cols;
+  const ch = h / rows;
+
+  ctx.save();
+
+  // leve sombra para que se vea sobre la pista
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.fillRect(x, y, w, h);
+
+  for (let r=0; r<rows; r++){
+    for (let c=0; c<cols; c++){
+      const isBlack = ((r + c) % 2 === 0);
+      ctx.fillStyle = isBlack ? "rgba(20,20,20,0.85)" : "rgba(245,245,245,0.85)";
+      ctx.fillRect(x + c*cw, y + r*ch, cw, ch);
+    }
+  }
+
+  // borde fino
+  ctx.lineWidth = Math.max(2, 3 * SCALE);
+  ctx.strokeStyle = "rgba(0,0,0,0.65)";
+  ctx.strokeRect(x, y, w, h);
+
+  ctx.restore();
+}
+
+/* ============================================================
+   DRAW
+============================================================ */
+function draw(){
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background
+  ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+
+  // Señalización pintada sobre la pista
+  drawFinishCheckered();
+  drawStartSign();
+
+  // Debug walls
+  if (DEBUG_DRAW_WALLS){
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = "#00ffcc";
+    ctx.lineWidth = 2;
+    for (const w of walls){
+      if (w.polygon){
+        ctx.beginPath();
+        const p0 = w.polygon[0];
+        ctx.moveTo((w.x + p0.x)*SCALE, (w.y + p0.y)*SCALE);
+        for (let i=1;i<w.polygon.length;i++){
+          const p = w.polygon[i];
+          ctx.lineTo((w.x + p.x)*SCALE, (w.y + p.y)*SCALE);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      } else {
+        ctx.strokeRect(w.x*SCALE, w.y*SCALE, w.width*SCALE, w.height*SCALE);
+      }
+    }
+    ctx.restore();
+  }
+
+  // Car sprite (visual) + collider (lógico)
+  ctx.save();
+  ctx.translate(car.x * SCALE, car.y * SCALE);
+  ctx.rotate(car.angle + SPRITE_ANGLE_OFFSET);
+
+  // Tamaño visual: mismo ancho, 20% menos largo
+  const drawW = 34 * SCALE;
+  const drawH = 54 * SCALE; // 68 * 0.8 ≈ 54
+
+  ctx.drawImage(carImg, -drawW/2, -drawH/2, drawW, drawH);
+  ctx.restore();
+
+  if (DEBUG_DRAW_COLLIDER){
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,0,0,0.9)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect((car.x - car.w/2)*SCALE, (car.y - car.h/2)*SCALE, car.w*SCALE, car.h*SCALE);
+    ctx.restore();
+  }
+}
+
+/* ============================================================
+   LOOP
+============================================================ */
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* ============================================================
+   BOOT
+============================================================ */
+(async function boot(){
+  try{
+    setStatus("Cargando mapa e imágenes…");
+
+    const [data, bg, carSprite] = await Promise.all([
+      loadMap(),
+      loadImage(BG_IMAGE),
+      loadImage(CAR_IMAGE),
+    ]);
+
+    bgImg = bg;
+    carImg = carSprite;
+
+    parseMap(data);
+    resetCar();
+
+    setStatus("Listo ✅ Usá flechas para correr. R para reiniciar.", "ok");
+    requestAnimationFrame(loop);
+
+  }catch(err){
+    console.error(err);
+    setStatus(
+      "ERROR: " + err.message + " | Tip: pista2.html, pista2.json, basepista.png y car.png en la MISMA carpeta.",
+      "err"
+    );
+  }
+})();
+</script>
+</body>
+</html>
