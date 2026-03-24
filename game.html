@@ -176,6 +176,8 @@
       letter-spacing: 1px;
       text-transform: uppercase;
       cursor:pointer;
+      pointer-events:auto;
+      touch-action: manipulation;
       transition: transform .12s ease, filter .12s ease, opacity .12s ease;
       box-shadow: 0 10px 30px rgba(0,0,0,0.35);
       white-space: nowrap;
@@ -428,6 +430,7 @@
       white-space: nowrap;
     }
     .chip.active{border-color: rgba(34,197,94,0.35)}
+    .chip.claim{border-color: rgba(249,115,22,0.45); color: rgba(255,232,196,0.95)}
     .chip.retired{border-color: rgba(239,68,68,0.35); opacity:0.9}
 
     /* ===== RIGHT SIDE: DETAILS + ACTIONS ===== */
@@ -492,7 +495,7 @@
     .modal{
       position: fixed;
       inset: 0;
-      z-index: 999;
+      z-index: 3001;
       display:none;
       align-items:center;
       justify-content:center;
@@ -500,9 +503,13 @@
       background: rgba(0,0,0,0.82);
       backdrop-filter: blur(6px);
     }
-    .modal.show{display:flex}
+    .modal.show{
+      display:flex;
+      pointer-events:auto;
+    }
 
     .modal-card{
+      position: relative;
       width: min(860px, 100%);
       /* Ensure action buttons are always reachable on mobile */
       max-height: 92vh;
@@ -515,15 +522,19 @@
       background: linear-gradient(135deg, rgba(225,29,72,0.16), rgba(249,115,22,0.10));
       box-shadow: 0 22px 70px rgba(0,0,0,0.65);
       overflow:hidden;
+      pointer-events:auto;
     }
 
     .modal-head{
+      position: relative;
+      z-index: 2;
+      flex-shrink: 0;
       padding: 14px 14px 10px;
       border-bottom: 1px solid rgba(255,255,255,0.10);
       background: rgba(0,0,0,0.30);
       display:flex;
       align-items:center;
-      justify-content:space-between;
+      justify-content:flex-start;
       gap: 8px;
     }
 
@@ -534,19 +545,10 @@
       font-size: 15px;
     }
 
-    .modal-close{
-      border:1px solid rgba(255,255,255,0.16);
-      background: rgba(0,0,0,0.18);
-      color: rgba(255,255,255,0.92);
-      border-radius: 14px;
-      padding: 10px 12px;
-      cursor:pointer;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      font-size: 12px;
-    }
-
     .modal-body{
+      position: relative;
+      z-index: 1;
+      min-height: 0;
       padding: 14px;
       display:grid;
       grid-template-columns: 0.9fr 1.1fr;
@@ -675,6 +677,9 @@
     }
 
     .modal-foot{
+      position: relative;
+      z-index: 2;
+      flex-shrink: 0;
       padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
       border-top: 1px solid rgba(255,255,255,0.10);
       background: rgba(0,0,0,0.30);
@@ -703,6 +708,13 @@
       font-size: 12px;
       color: rgba(255,255,255,0.72);
       letter-spacing: 0.4px;
+    }
+
+    .modal-countdown{
+      font-size: 12px;
+      color: rgba(255,255,255,0.88);
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
     }
 
     /* ===== Mobile friendliness ===== */
@@ -1142,7 +1154,7 @@
                 <div class="v" id="d_races">—</div>
               </div>
               <div class="kv-row">
-                <div class="k">Total Returned</div>
+                <div class="k">Accumulated POL</div>
                 <div class="v" id="d_rewards">—</div>
               </div>
               <div class="kv-row">
@@ -1175,6 +1187,7 @@
           <div class="panel-body">
             <div class="action-row">
               <button class="btn primary wide" id="btnRace" disabled>Run Race</button>
+              <button class="btn wide" id="btnClaim" hidden disabled>Retirar Premio</button>
             </div>
 <div class="status-box" id="raceBox">Select a car to begin.</div>
           </div>
@@ -1209,7 +1222,6 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal-head">
         <h3 class="modal-title" id="modalTitle">Race Result</h3>
-        <button class="modal-close" id="modalCloseBtn">Close</button>
       </div>
 
       <div class="modal-body">
@@ -1249,7 +1261,7 @@
 
       <div class="modal-foot">
         <div class="hint">Tip: You can close by clicking outside, or pressing ESC.</div>
-        <button class="btn primary" id="modalOkBtn">OK</button>
+        <div class="modal-countdown" id="modalCountdown">Closing in 5s</div>
       </div>
     </div>
   </div>
@@ -1272,8 +1284,8 @@
     };
 
     // ✅ NEW DEPLOY (from your node deploy output)
-    const GAME_ADDRESS = "0x6d3D542D6FCCaAEe50CfD882280D69b4546f872d";
-    const CARS_ADDRESS = "0xfEa7Ef7D2d312958D20b96fE9cf436C3047A1f44";
+    const GAME_ADDRESS = "0x03A603631EF5F8137C7247726c2be497aA7cf88A";
+    const CARS_ADDRESS = "0x44BDe8b34292768759e11c90E2122CDbaAbF9A57";
 
     /******************************************************************
      * ABIs
@@ -1308,6 +1320,7 @@
     const GAME_ABI = [
       {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
       {"stateMutability":"payable","type":"receive"},
+      {"inputs":[],"name":"MAX_RETURN","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
       {"inputs":[],"name":"PRICE","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
       {"inputs":[],"name":"ROI_BPS","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
       {"inputs":[],"name":"BPS","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
@@ -1315,18 +1328,21 @@
       {"inputs":[],"name":"REWARD_FIRST","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
       {"inputs":[],"name":"REWARD_SECOND","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
       {"inputs":[],"name":"REWARD_THIRD","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[],"name":"REWARD_FOURTH_PLUS","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
       {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
       {"inputs":[],"name":"autos","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
       {"inputs":[],"name":"autosLocked","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
       {"inputs":[{"internalType":"address","name":"autosAddress","type":"address"}],"name":"setAutos","outputs":[],"stateMutability":"nonpayable","type":"function"},
-      {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"race","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"},{"internalType":"uint8","name":"position","type":"uint8"}],"name":"race","outputs":[],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"claimReward","outputs":[],"stateMutability":"nonpayable","type":"function"},
       {"inputs":[{"internalType":"address payable","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"withdrawPool","outputs":[],"stateMutability":"nonpayable","type":"function"},
       {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"carState","outputs":[
-        {"internalType":"uint256","name":"racesLeft","type":"uint256"},
-        {"internalType":"uint256","name":"returnedAmount","type":"uint256"},
+        {"internalType":"uint256","name":"racesUsed","type":"uint256"},
+        {"internalType":"uint256","name":"maxRaces","type":"uint256"},
+        {"internalType":"uint256","name":"accumulatedReturn","type":"uint256"},
         {"internalType":"uint256","name":"maxReturn","type":"uint256"},
+        {"internalType":"uint8","name":"status","type":"uint8"},
         {"internalType":"uint256","name":"lastRaceAt","type":"uint256"},
-        {"internalType":"uint256","name":"nonce","type":"uint256"},
         {"internalType":"bool","name":"initialized","type":"bool"}
       ],"stateMutability":"view","type":"function"}
     ];
@@ -1377,27 +1393,85 @@
     function setWalletLine(text){ $("walletLine").textContent = text; }
     function showSwitchButton(show){ $("btnSwitch").style.display = show ? "" : "none"; }
 
+    const CAR_STATUS_ACTIVE = 0;
+    const CAR_STATUS_READY_TO_CLAIM = 1;
+    const CAR_STATUS_RETIRED = 2;
+
+    function carStatusLabel(status){
+      if(status === CAR_STATUS_READY_TO_CLAIM) return "READY TO CLAIM";
+      if(status === CAR_STATUS_RETIRED) return "RETIRED";
+      return "ACTIVE";
+    }
+
+    let resultModalAutoCloseTimer = null;
+    let resultModalCountdownTimer = null;
+    let resultModalAutoCloseDeadline = 0;
+
     /******************************************************************
      * POPUP helpers
      ******************************************************************/
     function showModal(){
       const m = $("resultModal");
+      if(resultModalAutoCloseTimer){
+        clearTimeout(resultModalAutoCloseTimer);
+        resultModalAutoCloseTimer = null;
+      }
+      if(resultModalCountdownTimer){
+        clearInterval(resultModalCountdownTimer);
+        resultModalCountdownTimer = null;
+      }
+      hideRaceOverlay();
+      closeTimeTrialModal();
       m.classList.add("show");
       m.setAttribute("aria-hidden", "false");
+      m.style.display = "flex";
+      m.style.pointerEvents = "auto";
+      m.style.visibility = "visible";
       document.body.style.overflow = "hidden";
+      resultModalAutoCloseDeadline = Date.now() + 5000;
+      const updateModalCountdown = ()=>{
+        const leftMs = Math.max(0, resultModalAutoCloseDeadline - Date.now());
+        const leftSec = Math.max(0, Math.ceil(leftMs / 1000));
+        $("modalCountdown").textContent = `Closing in ${leftSec}s`;
+      };
+      updateModalCountdown();
+      resultModalCountdownTimer = setInterval(updateModalCountdown, 250);
+      resultModalAutoCloseTimer = setTimeout(()=>{
+        hideModal();
+      }, 5000);
     }
     function hideModal(){
       const m = $("resultModal");
+      if(resultModalAutoCloseTimer){
+        clearTimeout(resultModalAutoCloseTimer);
+        resultModalAutoCloseTimer = null;
+      }
+      if(resultModalCountdownTimer){
+        clearInterval(resultModalCountdownTimer);
+        resultModalCountdownTimer = null;
+      }
+      resultModalAutoCloseDeadline = 0;
       m.classList.remove("show");
       m.setAttribute("aria-hidden", "true");
+      m.style.display = "none";
+      m.style.pointerEvents = "none";
+      m.style.visibility = "hidden";
       document.body.style.overflow = "";
     }
 
     function ordinal(n){
-      if(n === 1) return "1st Place";
-      if(n === 2) return "2nd Place";
-      if(n === 3) return "3rd Place";
-      return "Result";
+      const num = Number(n);
+      if(!Number.isFinite(num) || num <= 0) return "Race Completed";
+      const absNum = Math.abs(Math.trunc(num));
+      const mod100 = absNum % 100;
+      let suffix = "th";
+      if(mod100 < 11 || mod100 > 13){
+        const mod10 = absNum % 10;
+        if(mod10 === 1) suffix = "st";
+        else if(mod10 === 2) suffix = "nd";
+        else if(mod10 === 3) suffix = "rd";
+      }
+      return `${absNum}${suffix} Place`;
     }
 
     function inferRarityFromMaxRaces(maxRaces){
@@ -1438,7 +1512,7 @@
         }else{
           if(cooldownTimer){ clearInterval(cooldownTimer); cooldownTimer = null; }
           setRunRaceButtonState();
-          if(!selectedCarIsRetired && selectedCarId){
+          if(selectedCarStatusCode === CAR_STATUS_ACTIVE && selectedCarId){
             setRace(`Ready to race with car #${selectedCarId}.`);
           }
         }
@@ -1480,6 +1554,8 @@
 
     function setModalResult({ tokenId, position, rewardWei, racesLeft, returnedAmount, txHash, imageUrl }){
       $("modalCarLabel").textContent = `Car #${tokenId}`;
+      const hasPosition = Number.isFinite(Number(position)) && Number(position) > 0;
+      const positionLabel = hasPosition ? ordinal(position) : "Race Completed";
 
       const dot = $("modalDot");
       dot.className = "dot";
@@ -1487,15 +1563,15 @@
       if(position === 2) dot.classList.add("p2");
       if(position === 3) dot.classList.add("p3");
 
-      $("modalPosition").textContent = position ? ordinal(position) : "Race Completed";
+      $("modalPosition").textContent = positionLabel;
       const big = $("modalPosition");
       big.className = "big pop";
       if(position === 1) big.classList.add("p1");
       if(position === 2) big.classList.add("p2");
       if(position === 3) big.classList.add("p3");
 
-      $("modalSubtitle").textContent = position
-        ? "Your car finished the race and earned a reward."
+      $("modalSubtitle").textContent = hasPosition
+        ? `Your car finished in ${positionLabel.toLowerCase()} and earned a reward.`
         : "Race confirmed. (Position inferred from reward.)";
 
       $("modalReward").textContent = rewardWei != null ? formatPOL(rewardWei) : "—";
@@ -1523,6 +1599,7 @@
 
     let selectedCarId = null;
     let selectedCarRarity = "common";
+    let selectedCarStatusCode = CAR_STATUS_ACTIVE;
     let selectedCarIsRetired = false;
 
     // Cooldown UI
@@ -1534,8 +1611,8 @@
     const retiredByCar = new Map();
 
     // cached constants (from game)
-    let PRICE = null, ROI_BPS = null, BPS = null, COOLDOWN = null;
-    let REW_FIRST = null, REW_SECOND = null, REW_THIRD = null;
+    let PRICE = null, ROI_BPS = null, BPS = null, COOLDOWN = null, MAX_RETURN_WEI = null;
+    let REW_FIRST = null, REW_SECOND = null, REW_THIRD = null, REW_FOURTH_PLUS = null;
 
     /******************************************************************
      * Admin + Gas settings (Amoy)
@@ -1600,11 +1677,27 @@
      ******************************************************************/
     function setRunRaceButtonState(){
       const btn = $("btnRace");
+      const claimBtn = $("btnClaim");
       const hasSelected = !!selectedCarId;
+
+      if(claimBtn){
+        claimBtn.hidden = true;
+        claimBtn.disabled = true;
+      }
 
       if(!hasSelected){
         btn.textContent = "Run Race";
         btn.disabled = true;
+        return;
+      }
+
+      if(selectedCarStatusCode === CAR_STATUS_READY_TO_CLAIM){
+        btn.textContent = "Ready To Claim";
+        btn.disabled = true;
+        if(claimBtn){
+          claimBtn.hidden = false;
+          claimBtn.disabled = false;
+        }
         return;
       }
 
@@ -1743,14 +1836,16 @@ if(!userAddress){
     async function loadGameConstants(){
       if(!game) return;
       try{
-        [PRICE, ROI_BPS, BPS, COOLDOWN, REW_FIRST, REW_SECOND, REW_THIRD] = await Promise.all([
+        [PRICE, ROI_BPS, BPS, COOLDOWN, MAX_RETURN_WEI, REW_FIRST, REW_SECOND, REW_THIRD, REW_FOURTH_PLUS] = await Promise.all([
           game.PRICE(),
           game.ROI_BPS(),
           game.BPS(),
           game.COOLDOWN(),
+          game.MAX_RETURN(),
           game.REWARD_FIRST(),
           game.REWARD_SECOND(),
-          game.REWARD_THIRD()
+          game.REWARD_THIRD(),
+          game.REWARD_FOURTH_PLUS()
         ]);
       }catch{
         // if something fails, keep nulls (UI will still work with fallbacks)
@@ -1777,32 +1872,39 @@ if(!userAddress){
       // state comes from game
       const st = await game.carState(tokenId);
 
-      let racesLeft = BigInt(st.racesLeft ?? 0n);
-      let returnedAmount = BigInt(st.returnedAmount ?? 0n);
+      let racesUsed = BigInt(st.racesUsed ?? 0n);
+      let maxRacesState = BigInt(st.maxRaces ?? 0n);
+      let returnedAmount = BigInt(st.accumulatedReturn ?? 0n);
       let maxReturn = BigInt(st.maxReturn ?? 0n);
+      let statusCode = Number(st.status ?? CAR_STATUS_ACTIVE);
       const initialized = !!st.initialized;
 
       // if not initialized yet (never raced), simulate the init values
       if(!initialized){
-        const price = PRICE ?? 10n * 10n**18n;      // fallback 10 POL
-        const roi = ROI_BPS ?? 12000n;
-        const bps = BPS ?? 10000n;
-        racesLeft = maxRaces;
+        maxRacesState = maxRaces;
+        racesUsed = 0n;
         returnedAmount = 0n;
-        maxReturn = (price * roi) / bps;
+        maxReturn = MAX_RETURN_WEI ?? ((PRICE ?? 10n * 10n**18n) * (ROI_BPS ?? 12000n)) / (BPS ?? 10000n);
+        statusCode = CAR_STATUS_ACTIVE;
       }
 
-      const racesTotal = maxRaces;
-      const retired = (racesLeft === 0n) || (returnedAmount >= maxReturn);
+      const racesTotal = maxRacesState > 0n ? maxRacesState : maxRaces;
+      const racesLeft = racesTotal > racesUsed ? (racesTotal - racesUsed) : 0n;
+      const retired = statusCode === CAR_STATUS_RETIRED;
+      const readyToClaim = statusCode === CAR_STATUS_READY_TO_CLAIM;
 
       return {
         tokenId: Number(tokenId),
         carOwner,
+        racesUsed,
         racesLeft,
         racesTotal,
         returnedAmount,
         maxReturn,
+        statusCode,
+        statusLabel: carStatusLabel(statusCode),
         lastRaceAt: Number(st.lastRaceAt || 0),
+        readyToClaim,
         retired,
         rarity
       };
@@ -1909,6 +2011,8 @@ if(!userAddress){
 
       const retired = !!view.retired;
       retiredByCar.set(tokenId, retired);
+      const statusLabel = view.statusLabel || carStatusLabel(view.statusCode);
+      const chipClass = retired ? "retired" : (view.readyToClaim ? "claim" : "active");
 
       const cardEl = document.querySelector(`.car-card[data-id="${tokenId}"]`);
       if(cardEl){
@@ -1933,8 +2037,8 @@ if(!userAddress){
 
       const chip = document.getElementById(`chip-${tokenId}`);
       if(chip){
-        chip.textContent = retired ? "RETIRED" : "ACTIVE";
-        chip.className = retired ? "chip retired" : "chip active";
+        chip.textContent = statusLabel;
+        chip.className = `chip ${chipClass}`;
       }
 
       const badge = document.getElementById(`rarity-${tokenId}`);
@@ -1979,6 +2083,7 @@ if(!userAddress){
       clearGarage();
       setSelectedDetails({});
       selectedCarId = null;
+      selectedCarStatusCode = CAR_STATUS_ACTIVE;
       selectedCarIsRetired = false;
       clearTimeTrialUnlock();
       setRunRaceButtonState();
@@ -2095,6 +2200,7 @@ if(!userAddress){
       const v = await getCarView(tokenId);
 
       selectedCarRarity = v.rarity;
+      selectedCarStatusCode = v.statusCode;
       selectedCarIsRetired = !!v.retired;
 
       // Compute cooldown window for this car
@@ -2115,9 +2221,9 @@ if(!userAddress){
 
       setSelectedDetails({
         id: tokenId,
-        races: `${Number(v.racesTotal - v.racesLeft)} / ${Number(v.racesTotal)}`,
+        races: `${Number(v.racesUsed)} / ${Number(v.racesTotal)}`,
         rewards: `${formatPOL(v.returnedAmount)} / ${formatPOL(v.maxReturn)}`,
-        status: v.retired ? "RETIRED" : "ACTIVE",
+        status: v.statusLabel,
         owner: v.carOwner ? v.carOwner : "—",
         lasttx: tx
       });
@@ -2130,6 +2236,9 @@ if(!userAddress){
       if(v.retired){
         setRace("This car is RETIRED and can no longer race.");
         setStatus(`Car #${tokenId} is RETIRED.`);
+      }else if(v.readyToClaim){
+        setRace(`Car #${tokenId} is ready to claim ${formatPOL(v.returnedAmount)}.`);
+        setStatus(`Car #${tokenId} is READY TO CLAIM.`);
       }else{
         setRace(`Ready to race with car #${tokenId}.`);
         setStatus(`Car #${tokenId} loaded.`);
@@ -2176,24 +2285,83 @@ if(!userAddress){
      ******************************************************************/
 
     /******************************************************************
- * Time Trial gate (page-based, frontend-only)
- * - pista.html opens as a separate page (no iframe / no modal)
- * - pista.html reports result back to this page via window.postMessage
+ * Time Trial gate (frontend-only)
+ * - PISTA/runner.html loads inside the overlay iframe
+ * - the Phaser runner reports result back via window.postMessage
  ******************************************************************/
 
 const TIME_TRIAL_LIMIT_SEC = 35;      // objective
-const TIME_TRIAL_UNLOCK_MS = 60_000;  // unlock duration after passing
-const TIME_TRIAL_PAGE = "PISTA/pista.html";
+const TIME_TRIAL_PAGE = "PISTA/runner.html";
+const TIME_TRIAL_EVENT_STORAGE_KEY = "MICRORACERS_TIME_TRIAL_EVENT_V1";
+const TIME_TRIAL_TRACKS = [
+  { id: "test_s_circuit", name: "S-Circuit V1" },
+  { id: "monza_style_circuit", name: "Monza Style V1" },
+  { id: "suzuka_style_circuit", name: "Suzuka Style V1" },
+  { id: "indianapolis_oval", name: "Indianapolis Oval V1" },
+  { id: "thunder_loop_circuit", name: "Thunder Loop V1" }
+];
 
-let timeTrialUnlockedUntil = 0;
+let timeTrialUnlock = null;
 let ttIsOpen = false;
 let ttLastUrl = "";
+let ttCurrentTrackId = "";
+let ttCurrentTrackName = "";
+let ttCurrentSeed = 1;
+let ttStoragePollTimer = null;
+let ttLastEventId = "";
+
+function setTimeTrialRetryState(enabled){
+  const retryBtn = $("ttRetryBtn");
+  if(!retryBtn) return;
+  retryBtn.disabled = !enabled;
+  retryBtn.hidden = !enabled;
+}
+
+function getSelectedCarTrialKey(){
+  if(selectedCarId === null || selectedCarId === undefined) return "";
+  return String(selectedCarId);
+}
 
 function isTimeTrialUnlocked(){
-  return Date.now() < timeTrialUnlockedUntil;
+  const selectedKey = getSelectedCarTrialKey();
+  return !!(selectedKey && timeTrialUnlock && timeTrialUnlock.carKey === selectedKey);
 }
+
+function setTimeTrialUnlock(data){
+  timeTrialUnlock = {
+    carKey: String(data.carKey || ""),
+    timeSec: Number(data.timeSec),
+    position: Number(data.position),
+    trackId: data.trackId || "",
+    trackName: data.trackName || "",
+    passedAt: Date.now()
+  };
+}
+
 function clearTimeTrialUnlock(){
-  timeTrialUnlockedUntil = 0;
+  timeTrialUnlock = null;
+}
+
+function applyTimeTrialPass(t, eventCarKey, trackId, trackName, position = null){
+  setTimeTrialUnlock({
+    carKey: eventCarKey || getSelectedCarTrialKey(),
+    timeSec: t,
+    position,
+    trackId,
+    trackName
+  });
+  setRunRaceButtonState();
+}
+
+function getTimeTrialTrackName(trackId){
+  const found = TIME_TRIAL_TRACKS.find((track)=>track.id === trackId);
+  return found ? found.name : trackId;
+}
+
+function pickRandomTimeTrialTrack(excludeId = ""){
+  const pool = TIME_TRIAL_TRACKS.filter((track)=>track.id !== excludeId);
+  const source = pool.length ? pool : TIME_TRIAL_TRACKS;
+  return source[Math.floor(Math.random() * source.length)];
 }
 
 function showTimeTrialOverlay(show){
@@ -2206,39 +2374,78 @@ function showTimeTrialOverlay(show){
   document.body.style.overflow = show ? "hidden" : "";
 }
 
-function timeTrialUrlForCar(carId){
-  // cache-bust with &t= to avoid stale iframe state on reopen
-  return `${TIME_TRIAL_PAGE}?embed=1&car=${encodeURIComponent(carId)}&limit=${encodeURIComponent(TIME_TRIAL_LIMIT_SEC)}&t=${Date.now()}`;
+function readStoredTimeTrialEvent(){
+  try{
+    const raw = localStorage.getItem(TIME_TRIAL_EVENT_STORAGE_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  }catch(e){
+    return null;
+  }
 }
 
-function openTimeTrialModal(){
+function clearStoredTimeTrialEvent(){
+  try{
+    localStorage.removeItem(TIME_TRIAL_EVENT_STORAGE_KEY);
+  }catch(e){}
+}
+
+function stopTimeTrialStoragePolling(){
+  if(ttStoragePollTimer){
+    clearInterval(ttStoragePollTimer);
+    ttStoragePollTimer = null;
+  }
+}
+
+function startTimeTrialStoragePolling(){
+  stopTimeTrialStoragePolling();
+  ttStoragePollTimer = setInterval(()=>{
+    if(!ttIsOpen) return;
+    const storedEvent = readStoredTimeTrialEvent();
+    if(storedEvent) handleTimeTrialMessageData(storedEvent);
+  }, 250);
+}
+
+function timeTrialUrlForCar(carId, trackId, seed){
+  // cache-bust with &t= to avoid stale iframe state on reopen
+  return `${TIME_TRIAL_PAGE}?embed=1&car=${encodeURIComponent(carId)}&track=${encodeURIComponent(trackId)}&seed=${encodeURIComponent(seed)}&limit=${encodeURIComponent(TIME_TRIAL_LIMIT_SEC)}&t=${Date.now()}`;
+}
+
+function openTimeTrialModal(forceDifferentTrack = false){
   if(!selectedCarId){
     setRace("Select a car to begin.");
     return;
   }
 
-  // Update topbar labels
+  const pickedTrack = pickRandomTimeTrialTrack(forceDifferentTrack ? ttCurrentTrackId : "");
+  ttCurrentTrackId = pickedTrack.id;
+  ttCurrentTrackName = pickedTrack.name;
+  ttCurrentSeed = Math.floor(Math.random() * 1000000);
+
   const t = $("ttTitle");
   const s = $("ttSub");
-  if(t) t.textContent = `Time Trial — Car #${selectedCarId}`;
-  if(s) s.textContent = `Goal: ≤ ${TIME_TRIAL_LIMIT_SEC}s · Finish to unlock Run Race`;
+  if(t) t.textContent = `Time Trial - Car #${selectedCarId}`;
+  if(s) s.textContent = `Track: ${ttCurrentTrackName} | Goal: <= ${TIME_TRIAL_LIMIT_SEC}s | Finish to unlock Run Race`;
 
   const frame = $("ttFrame");
   if(!frame) return;
-
-  const url = timeTrialUrlForCar(selectedCarId);
+  setTimeTrialRetryState(false);
+  ttLastEventId = "";
+  clearStoredTimeTrialEvent();
+  startTimeTrialStoragePolling();
+  const url = timeTrialUrlForCar(selectedCarId, ttCurrentTrackId, ttCurrentSeed);
   ttLastUrl = url;
-
-  // Load / reload the iframe fresh each time (prevents "works once" issues)
   frame.src = url;
-
   showTimeTrialOverlay(true);
-  setRace(`Time Trial opened for car #${selectedCarId}. Finish in ≤ ${TIME_TRIAL_LIMIT_SEC}s.`);
+  setRace(`Time Trial opened for car #${selectedCarId} on ${ttCurrentTrackName}. Finish in <= ${TIME_TRIAL_LIMIT_SEC}s.`);
 }
 
 function closeTimeTrialModal(){
   const frame = $("ttFrame");
   showTimeTrialOverlay(false);
+  setTimeTrialRetryState(false);
+  stopTimeTrialStoragePolling();
 
   // Optional: unload iframe to free resources on low-end phones
   if(frame) frame.src = "about:blank";
@@ -2252,33 +2459,93 @@ function postToTimeTrial(payload){
   }catch(e){}
 }
 
-function attachTimeTrialMessageListener(){
-  window.addEventListener("message", (ev)=>{
-    const d = ev.data;
-    if(!d || typeof d !== "object") return;
+function handleTimeTrialMessageData(d){
+  if(!d || typeof d !== "object") return;
+  console.info("[TimeTrial]", d.type, d);
+  const eventId = d.__eventId === null || d.__eventId === undefined ? "" : String(d.__eventId);
+  if(eventId){
+    if(eventId === ttLastEventId) return;
+    ttLastEventId = eventId;
+  }
+  const eventCarKey = d.car === null || d.car === undefined ? "" : String(d.car);
+  const selectedCarKey = getSelectedCarTrialKey();
+  const eventSeed = Number(d.seed);
 
-    // Track tells us it's ready (useful for sending reset/start if needed)
-    if(d.type === "MICRORACERS_TIME_TRIAL_READY"){
-      // Ensure the track input is enabled
-      postToTimeTrial({ type:"MICRORACERS_TIME_TRIAL_INPUT", enabled:true });
+  if(Number.isFinite(eventSeed) && Number.isFinite(ttCurrentSeed) && eventSeed !== ttCurrentSeed){
+    console.info("[TimeTrial] Ignoring stale event for seed", eventSeed, d.type);
+    return;
+  }
+
+  if(eventCarKey && selectedCarKey && eventCarKey !== selectedCarKey){
+    console.info("[TimeTrial] Ignoring stale event for car", eventCarKey, d.type);
+    return;
+  }
+
+  if(d.type === "MICRORACERS_TIME_TRIAL_READY"){
+    if(d.track){
+      ttCurrentTrackId = d.track;
+      ttCurrentTrackName = getTimeTrialTrackName(d.track);
+      const s = $("ttSub");
+      if(s) s.textContent = `Track: ${ttCurrentTrackName} | Goal: <= ${TIME_TRIAL_LIMIT_SEC}s | Finish to unlock Run Race`;
+    }
+    setStatus(`Time Trial ready on ${ttCurrentTrackName || "track"}.`);
+    setTimeTrialRetryState(false);
+    postToTimeTrial({ type:"MICRORACERS_TIME_TRIAL_INPUT", enabled:true });
+    return;
+  }
+
+  if(d.type === "MICRORACERS_TIME_TRIAL_CLOSE"){
+    closeTimeTrialModal();
+    return;
+  }
+
+  const t = Number(d.timeSec);
+  const isDoneEvent = d.type === "MICRORACERS_TIME_TRIAL_DONE";
+  const isSubmitEvent = d.type === "MICRORACERS_TIME_TRIAL_SUBMIT";
+  if(!isDoneEvent && !isSubmitEvent) return;
+  if(!Number.isFinite(t)) return;
+
+  const finalTrackName = getTimeTrialTrackName(d.track || ttCurrentTrackId);
+  ttCurrentTrackId = d.track || ttCurrentTrackId;
+  ttCurrentTrackName = finalTrackName;
+
+  if(isSubmitEvent){
+    if(t > TIME_TRIAL_LIMIT_SEC){
+      setStatus(`Time Trial failed: ${t.toFixed(2)}s / ${TIME_TRIAL_LIMIT_SEC}s. Retry.`);
+      setRace(`Too slow on ${finalTrackName}: ${t.toFixed(2)}s (limit ${TIME_TRIAL_LIMIT_SEC}s). Press Retry.`);
       return;
     }
 
-    if(d.type !== "MICRORACERS_TIME_TRIAL_DONE") return;
+    applyTimeTrialPass(t, eventCarKey, ttCurrentTrackId, finalTrackName, d.position);
+    setStatus(`Time Trial approved in ${t.toFixed(2)}s. Sending race transaction...`);
+    setRace(`Time Trial passed: ${t.toFixed(2)}s. Sending race transaction...`);
+    closeTimeTrialModal();
+    runRaceTx();
+    return;
+  }
 
-    const t = Number(d.timeSec);
-    if(!Number.isFinite(t)) return;
+  if(t <= TIME_TRIAL_LIMIT_SEC){
+    applyTimeTrialPass(t, eventCarKey || selectedCarKey, ttCurrentTrackId, finalTrackName, d.position);
+    setStatus(`Time Trial passed in ${t.toFixed(2)}s. Use Enviar transaccion in the result card.`);
+    setRace(`Time Trial passed: ${t.toFixed(2)}s (limit ${TIME_TRIAL_LIMIT_SEC}s). Use Enviar transaccion in the result card.`);
+  }else{
+    clearTimeTrialUnlock();
+    setTimeTrialRetryState(true);
+    setStatus(`Time Trial failed: ${t.toFixed(2)}s / ${TIME_TRIAL_LIMIT_SEC}s. Retry.`);
+    setRace(`Too slow on ${finalTrackName}: ${t.toFixed(2)}s (limit ${TIME_TRIAL_LIMIT_SEC}s). Press Retry.`);
+  }
+}
 
-    if(t <= TIME_TRIAL_LIMIT_SEC){
-      timeTrialUnlockedUntil = Date.now() + TIME_TRIAL_UNLOCK_MS;
-      setRace(`✅ Time Trial passed: ${t.toFixed(2)}s (limit ${TIME_TRIAL_LIMIT_SEC}s). Now press Run Race.`);
-      // Close the overlay automatically on success
-      closeTimeTrialModal();
-    }else{
-      timeTrialUnlockedUntil = 0;
-      setRace(`❌ Too slow: ${t.toFixed(2)}s (limit ${TIME_TRIAL_LIMIT_SEC}s). Press Retry.`);
-      // Keep overlay open so user can retry immediately
-    }
+function attachTimeTrialMessageListener(){
+  window.__MICRORACERS_TIME_TRIAL_EVENT__ = handleTimeTrialMessageData;
+  window.addEventListener("message", (ev)=>{
+    handleTimeTrialMessageData(ev.data);
+  });
+  window.addEventListener("storage", (ev)=>{
+    if(ev.key !== TIME_TRIAL_EVENT_STORAGE_KEY || !ev.newValue) return;
+    try{
+      handleTimeTrialMessageData(JSON.parse(ev.newValue));
+    }catch(e){}
   });
 }
 
@@ -2297,6 +2564,12 @@ async function runRaceTx(){
         return;
       }
 
+      if(selectedCarStatusCode === CAR_STATUS_READY_TO_CLAIM){
+        setRunRaceButtonState();
+        setRace("This car is READY TO CLAIM. Withdraw the reward first.");
+        return;
+      }
+
       if(isCooldownActive()){
         setRunRaceButtonState();
         const now = Math.floor(Date.now()/1000);
@@ -2305,21 +2578,30 @@ async function runRaceTx(){
         return;
       }
 
+      const racingCarId = selectedCarId;
+      const racingCarRarity = selectedCarRarity;
+      const racingPosition = isTimeTrialUnlocked() && timeTrialUnlock && timeTrialUnlock.carKey === String(racingCarId)
+        ? Number(timeTrialUnlock.position)
+        : NaN;
+
+      if(!Number.isFinite(racingPosition) || racingPosition < 1){
+        setRunRaceButtonState();
+        setRace("Complete the Time Trial and submit the result again to capture a valid position.");
+        return;
+      }
+
       try{
         $("btnRace").disabled = true;
 
-        // snapshot pre-state to compute reward (MR_JUEGO doesn't emit RaceResult)
-        const pre = await getCarView(selectedCarId);
+        // snapshot pre-state to compute newly accumulated reward
+        const pre = await getCarView(racingCarId);
 
-        // quick pool check (helps explain the common revert)
-        const poolBal = await provider.getBalance(GAME_ADDRESS);
-        if(poolBal <= 0n){
-          setRace("Pool is empty. Minting a car funds the pool (10 POL).");
-        }
-
-        showRaceOverlay("confirm", selectedCarId, selectedCarRarity);
+        showRaceOverlay("confirm", racingCarId, racingCarRarity);
         setStatus(`Sending race tx for car #${selectedCarId}… Confirm in MetaMask.`);
         setRace("Transaction pending…");
+
+        setStatus(`Sending race tx for car #${racingCarId}... Confirm in MetaMask.`);
+        setRace(`Recording P${racingPosition} on-chain...`);
 
         // NOTE: On Amoy, MetaMask can fail with custom EIP-1559 overrides.
         // We send the tx without fee overrides and let MetaMask estimate fees.
@@ -2329,40 +2611,39 @@ async function runRaceTx(){
 
         let gasLimit = null;
         try{
-          const est = await game.race.estimateGas(selectedCarId, fees);
+          const est = await game.race.estimateGas(racingCarId, racingPosition, fees);
           gasLimit = (est * 12n) / 10n;
         }catch{}
 
         const tx = gasLimit
-          ? await game.race(selectedCarId, { ...fees, gasLimit })
-          : await game.race(selectedCarId, { ...fees });
+          ? await game.race(racingCarId, racingPosition, { ...fees, gasLimit })
+          : await game.race(racingCarId, racingPosition, { ...fees });
 
-lastTxByCar.set(selectedCarId, tx.hash);
+        lastTxByCar.set(racingCarId, tx.hash);
 
         setStatus(`Race pending… ${tx.hash}`);
-        showRaceOverlay("mining", selectedCarId, selectedCarRarity);
+        showRaceOverlay("mining", racingCarId, racingCarRarity);
         await tx.wait();
 
         // read post-state and compute reward
-        const post = await getCarView(selectedCarId);
+        const post = await getCarView(racingCarId);
         const reward = (post.returnedAmount >= pre.returnedAmount)
           ? (post.returnedAmount - pre.returnedAmount)
           : 0n;
 
-        const pos = positionFromReward(reward);
-
         setRace(
-          `Reward: ${formatPOL(reward)}\n` +
+          `Added: ${formatPOL(reward)}\n` +
           `Races left: ${post.racesLeft}\n` +
-          `Total returned: ${formatPOL(post.returnedAmount)}\n` +
+          `Accumulated: ${formatPOL(post.returnedAmount)} / ${formatPOL(post.maxReturn)}\n` +
+          `Status: ${post.statusLabel}\n` +
           `Tx: ${tx.hash}`
         );
 
-        const imgUrl = imageByCar.get(selectedCarId) || null;
+        const imgUrl = imageByCar.get(racingCarId) || null;
         hideRaceOverlay();
         setModalResult({
-          tokenId: selectedCarId,
-          position: pos,
+          tokenId: racingCarId,
+          position: racingPosition,
           rewardWei: reward,
           racesLeft: post.racesLeft,
           returnedAmount: post.returnedAmount,
@@ -2372,7 +2653,7 @@ lastTxByCar.set(selectedCarId, tx.hash);
         showModal();
 
         await refreshPool();
-        await selectCar(selectedCarId);
+        await selectCar(racingCarId);
 
         setStatus("Race complete. UI updated.");
       }catch(e){
@@ -2386,6 +2667,74 @@ lastTxByCar.set(selectedCarId, tx.hash);
 
         setStatus("Race failed: " + (deepMsg || e?.shortMessage || e?.message || "Unknown error"));
         setRace("Race failed. Open F12 → Console to see the full error details.");
+      }finally{
+        hideRaceOverlay();
+        await ensureAmoyUI();
+        setRunRaceButtonState();
+      }
+    }
+
+async function claimRewardTx(){
+      const ok = await ensureAmoyUI();
+      if(!ok) return;
+
+      if(!selectedCarId){
+        setStatus("Select a car before claiming.");
+        return;
+      }
+
+      if(selectedCarStatusCode !== CAR_STATUS_READY_TO_CLAIM){
+        setRunRaceButtonState();
+        setRace("This car is not ready to claim yet.");
+        return;
+      }
+
+      const claimCarId = selectedCarId;
+      const claimCarRarity = selectedCarRarity;
+
+      try{
+        $("btnClaim").disabled = true;
+
+        showRaceOverlay("confirm", claimCarId, claimCarRarity);
+        setStatus(`Claiming reward for car #${claimCarId}... Confirm in MetaMask.`);
+        setRace("Claim transaction pending...");
+
+        const fees = await getFeeOverrides();
+
+        let gasLimit = null;
+        try{
+          const est = await game.claimReward.estimateGas(claimCarId, fees);
+          gasLimit = (est * 12n) / 10n;
+        }catch{}
+
+        const tx = gasLimit
+          ? await game.claimReward(claimCarId, { ...fees, gasLimit })
+          : await game.claimReward(claimCarId, { ...fees });
+
+        lastTxByCar.set(claimCarId, tx.hash);
+
+        setStatus(`Claim pending... ${tx.hash}`);
+        showRaceOverlay("mining", claimCarId, claimCarRarity);
+        await tx.wait();
+
+        hideRaceOverlay();
+        await refreshPool();
+        await loadGarage();
+        await selectCar(claimCarId);
+
+        setRace(`Reward claimed successfully. Tx: ${tx.hash}`);
+        setStatus(`Reward claimed for car #${claimCarId}.`);
+      }catch(e){
+        console.error("Claim error:", e);
+        const deepMsg =
+          e?.info?.error?.message ||
+          e?.error?.message ||
+          e?.data?.message ||
+          e?.cause?.message ||
+          null;
+
+        setStatus("Claim failed: " + (deepMsg || e?.shortMessage || e?.message || "Unknown error"));
+        setRace("Claim failed. Open F12 â†’ Console to see the full error details.");
       }finally{
         hideRaceOverlay();
         await ensureAmoyUI();
@@ -2411,8 +2760,6 @@ async function runRace(){
     return;
   }
 
-  // consume unlock so you must replay next time
-  clearTimeTrialUnlock();
   return await runRaceTx();
 }
 
@@ -2569,10 +2916,11 @@ async function runRace(){
 
       $("btnMint").addEventListener("click", mintCar);
       $("btnRace").addEventListener("click", runRace);
+      $("btnClaim").addEventListener("click", claimRewardTx);
       $("btnWithdraw").addEventListener("click", withdrawPoolAdmin);
+      $("ttRetryBtn").addEventListener("click", ()=> openTimeTrialModal(true));
+      $("ttCloseBtn").addEventListener("click", closeTimeTrialModal);
 
-      $("modalCloseBtn").addEventListener("click", hideModal);
-      $("modalOkBtn").addEventListener("click", hideModal);
       $("resultModal").addEventListener("click", (e)=>{
         if(e.target && e.target.id === "resultModal") hideModal();
       });
@@ -2593,6 +2941,7 @@ async function runRace(){
           setAdminUI();
 
           selectedCarId = null;
+          selectedCarStatusCode = CAR_STATUS_ACTIVE;
           selectedCarIsRetired = false;
           clearGarage();
           setSelectedDetails({});
@@ -2618,6 +2967,7 @@ async function runRace(){
           setAdminUI();
 
           selectedCarId = null;
+          selectedCarStatusCode = CAR_STATUS_ACTIVE;
           selectedCarIsRetired = false;
           clearGarage();
           setSelectedDetails({});
@@ -2641,6 +2991,7 @@ async function runRace(){
       attachTimeTrialMessageListener();
       setSelectedDetails({});
       selectedCarId = null;
+      selectedCarStatusCode = CAR_STATUS_ACTIVE;
       selectedCarIsRetired = false;
       setRunRaceButtonState();
       setRace("Select a car to begin.");

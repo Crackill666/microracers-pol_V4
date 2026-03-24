@@ -1,0 +1,16 @@
+﻿dest,src
+sheets/racing_tiles.png,assets_external/kenney/kenney_racing-pack/Spritesheets/spritesheet_tiles.png
+sheets/racing_tiles.xml,assets_external/kenney/kenney_racing-pack/Spritesheets/spritesheet_tiles.xml
+sheets/racing_objects.png,assets_external/kenney/kenney_racing-pack/Spritesheets/spritesheet_objects.png
+sheets/racing_objects.xml,assets_external/kenney/kenney_racing-pack/Spritesheets/spritesheet_objects.xml
+sheets/racing_vehicles.png,assets_external/kenney/kenney_racing-pack/Spritesheets/spritesheet_vehicles.png
+sheets/racing_vehicles.xml,assets_external/kenney/kenney_racing-pack/Spritesheets/spritesheet_vehicles.xml
+terrain/road_textures_tilesheet.png,assets_external/kenney/kenney_road-textures/Tilesheet/roadTextures_tilesheet.png
+terrain/road_textures_tilesheet_2x.png,assets_external/kenney/kenney_road-textures/Tilesheet/roadTextures_tilesheet@2.png
+terrain/topdown_tanks_terrain.png,assets_external/kenney/kenney_top-down-tanks-redux/Tilesheet/terrainTiles_default.png
+sheets/topdown_tanks_objects.png,assets_external/kenney/kenney_top-down-tanks-redux/Spritesheet/onlyObjects_default.png
+sheets/topdown_tanks_objects.xml,assets_external/kenney/kenney_top-down-tanks-redux/Spritesheet/onlyObjects_default.xml
+cars/*,assets_external/kenney/kenney_racing-pack/PNG/Cars + assets_external/kenney/kenney_pixel-vehicle-pack/PNG/Cars
+props/*,assets_external/kenney/kenney_racing-pack/PNG/Objects + assets_external/kenney/kenney_top-down-tanks-redux/PNG/Default size
+fx/*,assets_external/kenney/kenney_particle-pack/PNG (Transparent)
+controls/*,assets_external/kenney/mobile-controls-1/Sprites/Style A/Default + Sprites/Icons/Default

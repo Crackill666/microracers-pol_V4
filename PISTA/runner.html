@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MicroRacers POL - Phaser Track V1</title>
+  <style>
+    :root {
+      --bg: #081119;
+      --panel: rgba(8, 14, 22, 0.74);
+      --panel-strong: rgba(10, 18, 28, 0.9);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: #f4f7fb;
+      --muted: rgba(233, 241, 250, 0.74);
+      --accent: #ffcf4c;
+      --danger: #ff6b6b;
+      --ok: #76e59a;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top, rgba(24, 42, 66, 0.85), rgba(3, 7, 12, 1) 62%),
+        linear-gradient(180deg, #0d1722, #04070c);
+      color: var(--text);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body.embed {
+      background: #05090f;
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    #game-root {
+      position: absolute;
+      inset: 0;
+    }
+
+    #hud {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+      z-index: 30;
+    }
+
+    .panel {
+      pointer-events: auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .panel.summary {
+      width: min(540px, calc(100vw - 138px));
+      min-width: 0;
+      padding: 8px 11px;
+    }
+
+    .summary-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .eyebrow {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 1.8px;
+      color: var(--accent);
+      margin-bottom: 3px;
+      opacity: 0.92;
+    }
+
+    #hudTitle {
+      font-size: clamp(18px, 1.8vw, 24px);
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      line-height: 1.05;
+    }
+
+    #hudSub {
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 2px;
+      line-height: 1.2;
+    }
+
+    .pill {
+      flex-shrink: 0;
+      border-radius: 999px;
+      padding: 5px 9px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.05);
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .summary-grid {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .stat {
+      padding: 6px 8px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      min-width: 0;
+    }
+
+    .stat-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 1.1px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: clamp(13px, 1.35vw, 17px);
+      font-weight: 800;
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #statusTag {
+      color: var(--ok);
+    }
+
+    .panel.actions {
+      display: flex;
+      gap: 6px;
+      padding: 6px;
+      flex-shrink: 0;
+    }
+
+    .action-btn {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border-radius: 11px;
+      padding: 8px 12px;
+      min-width: 72px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, background 120ms ease;
+    }
+
+    .action-btn:hover { transform: translateY(-1px); }
+    .action-btn.danger { color: #ffd6d6; border-color: rgba(255, 107, 107, 0.35); }
+
+    #messageBar {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 132px;
+      z-index: 28;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    #messageBar .message {
+      display: inline-block;
+      max-width: min(660px, calc(100vw - 32px));
+      padding: 10px 16px;
+      border-radius: 16px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: var(--shadow);
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    #resultPopup {
+      position: absolute;
+      inset: 0;
+      z-index: 45;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      padding: 24px;
+    }
+
+    #resultPopup.visible {
+      display: flex;
+      pointer-events: auto;
+    }
+
+    .result-card {
+      min-width: min(420px, calc(100vw - 32px));
+      max-width: min(460px, calc(100vw - 32px));
+      padding: 22px 24px;
+      text-align: center;
+      border-radius: 20px;
+      background: rgba(8, 14, 22, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.38);
+      backdrop-filter: blur(12px);
+      pointer-events: auto;
+    }
+
+    .result-kicker {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    .result-position {
+      font-size: clamp(42px, 8vw, 72px);
+      font-weight: 900;
+      line-height: 0.95;
+      color: var(--text);
+      text-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    }
+
+    .result-sub {
+      margin-top: 12px;
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .result-actions {
+      margin-top: 18px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .result-pill-btn {
+      appearance: none;
+      border: 1px solid rgba(255, 207, 76, 0.28);
+      background: rgba(255, 207, 76, 0.12);
+      color: #fff7d6;
+      border-radius: 999px;
+      padding: 12px 18px;
+      min-width: 220px;
+      font: inherit;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: transform 120ms ease, background 120ms ease, opacity 120ms ease;
+    }
+
+    .result-pill-btn:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 207, 76, 0.18);
+    }
+
+    .result-pill-btn:disabled,
+    .result-pill-btn[hidden] {
+      display: none;
+    }
+
+    #controls {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 35;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding: 12px;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .control-pad,
+    .control-stack {
+      display: flex;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .control-btn {
+      pointer-events: auto;
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(11, 19, 30, 0.64);
+      width: 74px;
+      height: 74px;
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      transition: transform 100ms ease, background 100ms ease;
+    }
+
+    .control-btn img {
+      width: 54%;
+      height: 54%;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+    }
+
+    .control-btn[data-control="gas"] img,
+    .control-btn[data-control="brake"] img {
+      width: 50%;
+      height: 50%;
+    }
+
+    .control-btn.active {
+      transform: scale(0.97);
+      background: rgba(255, 207, 76, 0.18);
+      border-color: rgba(255, 207, 76, 0.38);
+    }
+
+    .control-btn.brake.active {
+      background: rgba(255, 107, 107, 0.16);
+      border-color: rgba(255, 107, 107, 0.42);
+    }
+
+    .control-stack .control-btn {
+      width: 82px;
+      height: 82px;
+    }
+
+    @media (max-width: 980px) {
+      .panel.summary {
+        width: min(490px, calc(100vw - 128px));
+      }
+
+      #hudTitle {
+        font-size: 18px;
+      }
+
+      .stat-value {
+        font-size: 14px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      #hud {
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        gap: 8px;
+      }
+
+      .panel.summary {
+        width: calc(100vw - 106px);
+        padding: 7px 9px;
+        border-radius: 14px;
+      }
+
+      .panel.actions {
+        width: 90px;
+        flex-direction: column;
+        gap: 6px;
+        padding: 6px;
+        border-radius: 14px;
+      }
+
+      .action-btn {
+        width: 100%;
+        min-width: 0;
+        padding: 7px 7px;
+        font-size: 11px;
+        border-radius: 11px;
+      }
+
+      .eyebrow,
+      #hudSub {
+        display: none;
+      }
+
+      .summary-top {
+        align-items: center;
+        gap: 8px;
+      }
+
+      #hudTitle {
+        font-size: 15px;
+      }
+
+      .pill {
+        padding: 5px 8px;
+        font-size: 10px;
+      }
+
+      .summary-grid {
+        margin-top: 8px;
+        gap: 6px;
+      }
+
+      .stat {
+        padding: 6px 8px;
+        border-radius: 10px;
+      }
+
+      .stat-label {
+        font-size: 8px;
+        margin-bottom: 3px;
+      }
+
+      .stat-value {
+        font-size: 12px;
+      }
+
+      #controls {
+        padding: 10px;
+      }
+
+      .control-btn {
+        width: 66px;
+        height: 66px;
+      }
+
+      .control-stack .control-btn {
+        width: 72px;
+        height: 72px;
+      }
+
+      #messageBar {
+        left: 10px;
+        right: 10px;
+        bottom: 116px;
+      }
+
+      #messageBar .message {
+        max-width: calc(100vw - 24px);
+        padding: 9px 12px;
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 430px) {
+      .panel.summary {
+        width: calc(100vw - 100px);
+        padding: 6px 7px;
+      }
+
+      .panel.actions {
+        width: 84px;
+      }
+
+      #hudTitle {
+        font-size: 14px;
+      }
+
+      .pill {
+        font-size: 9px;
+        padding: 4px 7px;
+      }
+
+      .summary-grid {
+        gap: 5px;
+      }
+
+      .stat {
+        padding: 5px 6px;
+      }
+
+      .stat-value {
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="game-root"></div>
+
+    <div id="hud">
+      <div class="panel summary">
+        <div class="summary-top">
+          <div>
+            <div class="eyebrow">Phaser Track V1</div>
+            <div id="hudTitle">Loading track...</div>
+            <div id="hudSub">Preparando pista y sistema de tiempo</div>
+          </div>
+          <div class="pill" id="goalPill">Goal --</div>
+        </div>
+        <div class="summary-grid">
+          <div class="stat">
+            <div class="stat-label">Tiempo</div>
+            <div class="stat-value" id="timeValue">0.00s</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Velocidad</div>
+            <div class="stat-value" id="speedValue">0 km/h</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Checkpoints</div>
+            <div class="stat-value" id="checkpointValue">0 / 0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Posicion</div>
+            <div class="stat-value" id="positionValue">-- / --</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Estado</div>
+            <div class="stat-value" id="statusTag">READY</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel actions">
+        <button class="action-btn" id="retryBtn" type="button">Retry</button>
+        <button class="action-btn danger" id="closeBtn" type="button">Close</button>
+      </div>
+    </div>
+
+    <div id="messageBar">
+      <div class="message" id="messageText">Cargando Phaser track...</div>
+    </div>
+
+    <div id="resultPopup" aria-live="polite">
+      <div class="result-card">
+        <div class="result-kicker">Resultado</div>
+        <div class="result-position" id="resultPositionText">P1</div>
+        <div class="result-sub" id="resultPositionSub">Terminaste la carrera.</div>
+        <div class="result-actions">
+          <button class="result-pill-btn" id="submitTxBtn" type="button" hidden>Enviar transaccion</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="controls" aria-label="Controles">
+      <div class="control-pad">
+        <button class="control-btn" data-control="left" type="button" aria-label="Izquierda">
+          <img src="./assets_v1/controls/direction_left.png" alt="" />
+        </button>
+        <button class="control-btn" data-control="right" type="button" aria-label="Derecha">
+          <img src="./assets_v1/controls/direction_right.png" alt="" />
+        </button>
+      </div>
+      <div class="control-stack">
+        <button class="control-btn brake" data-control="brake" type="button" aria-label="Freno">
+          <img src="./assets_v1/controls/icon_pedal_brake.png" alt="" />
+        </button>
+        <button class="control-btn" data-control="gas" type="button" aria-label="Acelerar">
+          <img src="./assets_v1/controls/icon_pedal.png" alt="" />
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./vendor/phaser.min.js"></script>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
