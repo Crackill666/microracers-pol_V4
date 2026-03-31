@@ -8,7 +8,7 @@ const track = getTrack(query.track, query.seed);
 const bridge = new Bridge(query);
 const PHYSICS_DT_CAP_MS = 33.333;
 const SPEED_SCALE = 1.25;
-const PLAYER_SPEED_SCALE = 1.1;
+const PLAYER_SPEED_SCALE = 1.31824;
 const PLAYER_TURN_SCALE = 1.25;
 const TOP_SPEED_FORWARD = 320 * SPEED_SCALE;
 const TOP_SPEED_OFFROAD = 226 * SPEED_SCALE;
@@ -173,7 +173,15 @@ function getPenaltyTimeMs(collisionCount) {
   return collisionCount * RIVAL_COLLISION_PENALTY_MS;
 }
 
-function buildSegments(points) {
+function normalizeDistance(trackPath, dist) {
+  if (!trackPath.isLoop || trackPath.totalLength <= 0) {
+    return clamp(dist, 0, trackPath.totalLength);
+  }
+  const wrapped = dist % trackPath.totalLength;
+  return wrapped < 0 ? wrapped + trackPath.totalLength : wrapped;
+}
+
+function buildSegments(points, isLoop = false) {
   const segments = [];
   let total = 0;
   for (let i = 0; i < points.length - 1; i += 1) {
@@ -183,11 +191,20 @@ function buildSegments(points) {
     segments.push({ a, b, len, start: total, end: total + len });
     total += len;
   }
-  return { segments, totalLength: total };
+
+  if (isLoop && points.length > 2) {
+    const a = points[points.length - 1];
+    const b = points[0];
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    segments.push({ a, b, len, start: total, end: total + len });
+    total += len;
+  }
+
+  return { segments, totalLength: total, isLoop };
 }
 
 function getHeadingAtDistance(trackPath, dist) {
-  const safeDist = clamp(dist, 0, trackPath.totalLength);
+  const safeDist = normalizeDistance(trackPath, dist);
   for (const segment of trackPath.segments) {
     if (safeDist <= segment.end) {
       return Math.atan2(segment.b.y - segment.a.y, segment.b.x - segment.a.x);
@@ -198,7 +215,7 @@ function getHeadingAtDistance(trackPath, dist) {
 }
 
 function getSegmentStateAtDistance(trackPath, dist) {
-  const safeDist = clamp(dist, 0, trackPath.totalLength);
+  const safeDist = normalizeDistance(trackPath, dist);
   for (let index = 0; index < trackPath.segments.length; index += 1) {
     const segment = trackPath.segments[index];
     if (safeDist <= segment.end) {
@@ -286,7 +303,7 @@ function assetUrl(relativePath) {
 }
 
 function getPointAtDistance(trackPath, dist) {
-  const safeDist = clamp(dist, 0, trackPath.totalLength);
+  const safeDist = normalizeDistance(trackPath, dist);
   for (const segment of trackPath.segments) {
     if (safeDist <= segment.end) {
       const t = segment.len === 0 ? 0 : (safeDist - segment.start) / segment.len;
@@ -301,6 +318,9 @@ function getPointAtDistance(trackPath, dist) {
 }
 
 function getPointAtDistanceExtended(trackPath, dist) {
+  if (trackPath.isLoop) {
+    return getPointAtDistance(trackPath, dist);
+  }
   if (dist <= trackPath.totalLength) {
     return getPointAtDistance(trackPath, dist);
   }
@@ -420,11 +440,14 @@ function createLinearRenderPath(points) {
   return path;
 }
 
-function buildTrackRenderData(points) {
+function buildTrackRenderData(points, isLoop = false) {
   const renderPath = createLinearRenderPath(points);
+  if (isLoop && points.length > 2) {
+    renderPath.lineTo(points[0].x, points[0].y);
+  }
   return {
     renderPath,
-    followPath: buildSegments(points),
+    followPath: buildSegments(points, isLoop),
   };
 }
 
@@ -590,9 +613,12 @@ function bindTouchControls() {
 class RaceScene extends Phaser.Scene {
   constructor() {
     super("RaceScene");
-    this.trackPath = buildSegments(track.path);
-    this.smoothedTrack = buildTrackRenderData(track.path);
+    this.isLoopTrack = !!track.loop;
+    this.totalLaps = Math.max(1, Number(track.laps) || 1);
+    this.trackPath = buildSegments(track.path, this.isLoopTrack);
+    this.smoothedTrack = buildTrackRenderData(track.path, this.isLoopTrack);
     this.bounds = getBounds(track.path);
+    this.raceDistance = this.trackPath.totalLength * this.totalLaps;
     this.car = null;
     this.carState = null;
     this.checkpoints = [];
@@ -615,6 +641,10 @@ class RaceScene extends Phaser.Scene {
     this.playerRaceProgress = 0;
     this.playerPosition = 1;
     this.finalPosition = null;
+    this.currentLap = 1;
+    this.finishGate = null;
+    this.finishGateArmed = false;
+    this.lastFinishTriggerAt = 0;
     this.totalRacers = RIVAL_CAR_CONFIGS.length + 1;
     this.lastResultMessage = "";
     this.lastResultPayload = null;
@@ -646,8 +676,8 @@ class RaceScene extends Phaser.Scene {
     this.physics.world.setBounds(this.bounds.x, this.bounds.y, this.bounds.width, this.bounds.height);
 
     ui.title.textContent = track.name;
-    ui.sub.textContent = `${track.theme.replace(/_/g, " ")} - Car #${query.car || "-"}`;
-    ui.goal.textContent = `Goal ${query.limit}s - Par ${track.parTime}s`;
+    ui.sub.textContent = `${track.theme.replace(/_/g, " ")} - Car #${query.car || "-"}${this.isLoopTrack ? ` - ${this.totalLaps} laps` : ""}`;
+    ui.goal.textContent = `Goal ${query.limit}s - ${this.isLoopTrack ? `${this.totalLaps} laps - ` : ""}Par ${track.parTime}s`;
 
     this.createBackdrop();
     this.createRoad();
@@ -698,7 +728,7 @@ class RaceScene extends Phaser.Scene {
       window.close();
     });
 
-    setMessage("Listo para probar la primera pista Phaser. 3, 2, 1...");
+    setMessage(this.isLoopTrack ? `Listo para ${this.totalLaps} vueltas. 3, 2, 1...` : "Listo para probar la primera pista Phaser. 3, 2, 1...");
     setStatus("COUNTDOWN", "#ffcf4c");
   }
 
@@ -747,21 +777,33 @@ class RaceScene extends Phaser.Scene {
 
   createMarkers() {
     const startPos = track.path[0];
-    const finishPos = track.path[track.path.length - 1];
     const startHeading = getHeadingAtDistance(this.trackPath, 10);
-    const finishHeading = getHeadingAtDistance(this.trackPath, this.trackPath.totalLength - 10);
+    this.finishGate = getGateSegment(startPos, startHeading, track.roadWidth * 0.45);
 
     const startLine = this.add.graphics();
+    if (this.isLoopTrack) {
+      drawTrackStripe(startLine, startPos, startHeading, track.roadWidth * 0.45, 0xffffff, 0xffcf4c);
+      return;
+    }
+
+    const finishPos = track.path[track.path.length - 1];
+    const finishHeading = getHeadingAtDistance(this.trackPath, this.trackPath.totalLength - 10);
     drawTrackStripe(startLine, startPos, startHeading, track.roadWidth * 0.45, 0xffcf4c);
 
     const finishLine = this.add.graphics();
     drawTrackStripe(finishLine, finishPos, finishHeading, track.roadWidth * 0.45, 0xffffff, 0xff5f5f);
   }
 
+  getSpawnState() {
+    const spawnDistance = this.isLoopTrack ? 18 : 10;
+    const spawnPoint = getPointAtDistance(this.trackPath, spawnDistance);
+    const startHeading = getHeadingAtDistance(this.trackPath, spawnDistance);
+    return { spawnPoint, startHeading };
+  }
+
   createCar() {
-    const spawn = track.path[0];
-    const startHeading = getHeadingAtDistance(this.trackPath, 10);
-    this.car = this.physics.add.image(spawn.x, spawn.y + 28, "car_track");
+    const { spawnPoint, startHeading } = this.getSpawnState();
+    this.car = this.physics.add.image(spawnPoint.x, spawnPoint.y, "car_track");
     this.car.setDepth(10);
     this.car.setCollideWorldBounds(true);
     this.car.setDisplaySize(PLAYER_DISPLAY_WIDTH, PLAYER_DISPLAY_HEIGHT);
@@ -854,13 +896,31 @@ class RaceScene extends Phaser.Scene {
       const gate = getGateSegment(point, heading, halfWidth);
       return { point, heading, halfWidth, gate, marker, label, passed: false };
     });
-    ui.checkpoints.textContent = `0 / ${this.checkpoints.length}`;
+    this.updateProgressHud();
+  }
+
+  updateProgressHud() {
+    if (this.isLoopTrack) {
+      ui.checkpoints.textContent = `L${this.currentLap}/${this.totalLaps} C${this.nextCheckpointIndex}/${this.checkpoints.length}`;
+      return;
+    }
+    ui.checkpoints.textContent = `${this.nextCheckpointIndex} / ${this.checkpoints.length}`;
+  }
+
+  resetCheckpointState() {
+    this.nextCheckpointIndex = 0;
+    this.checkpoints.forEach((checkpoint, index) => {
+      checkpoint.passed = false;
+      drawCheckpointGate(checkpoint.marker, checkpoint.point, checkpoint.heading, checkpoint.halfWidth, false);
+      checkpoint.label.setText(`${index + 1}`);
+      checkpoint.label.setColor("#fff7d6");
+    });
+    this.updateProgressHud();
   }
 
   restartRace(skipCountdown = false) {
-    const spawn = track.path[0];
-    const startHeading = getHeadingAtDistance(this.trackPath, 10);
-    this.car.setPosition(spawn.x, spawn.y + 28);
+    const { spawnPoint, startHeading } = this.getSpawnState();
+    this.car.setPosition(spawnPoint.x, spawnPoint.y);
     this.car.setVelocity(0, 0);
     this.carState.angle = startHeading;
     this.carState.speed = 0;
@@ -880,18 +940,14 @@ class RaceScene extends Phaser.Scene {
     this.playerRaceProgress = 0;
     this.playerPosition = this.totalRacers;
     this.finalPosition = null;
+    this.currentLap = 1;
+    this.finishGateArmed = false;
+    this.lastFinishTriggerAt = 0;
     this.lastResultMessage = this.lastResultMessage || "";
-
-    this.checkpoints.forEach((checkpoint, index) => {
-      checkpoint.passed = false;
-      drawCheckpointGate(checkpoint.marker, checkpoint.point, checkpoint.heading, checkpoint.halfWidth, false);
-      checkpoint.label.setText(`${index + 1}`);
-      checkpoint.label.setColor("#fff7d6");
-    });
+    this.resetCheckpointState();
 
     ui.time.textContent = "0.00s";
     ui.speed.textContent = "0 km/h";
-    ui.checkpoints.textContent = `0 / ${this.checkpoints.length}`;
     ui.position.textContent = formatRacePosition(this.playerPosition, this.totalRacers);
     setRetryAvailability(false);
     setSubmitTxAvailability(false);
@@ -899,7 +955,11 @@ class RaceScene extends Phaser.Scene {
     this.skidGraphics.clear();
     this.resetRivals();
     this.updateOverlay(skipCountdown ? "GO!" : "3");
-    setMessage(skipCountdown ? "Carrera reiniciada. Ya podes acelerar." : "Nueva salida. Espera el countdown.");
+    setMessage(
+      skipCountdown
+        ? (this.isLoopTrack ? `Carrera reiniciada. Completa ${this.totalLaps} vueltas.` : "Carrera reiniciada. Ya podes acelerar.")
+        : "Nueva salida. Espera el countdown."
+    );
     setStatus(skipCountdown ? "RUN" : "COUNTDOWN", skipCountdown ? "#76e59a" : "#ffcf4c");
   }
 
@@ -920,21 +980,21 @@ class RaceScene extends Phaser.Scene {
 
   positionRival(rival, dt = 0, snapRotation = false) {
     const centerTrack = this.smoothedTrack.followPath;
-    const totalLength = centerTrack.totalLength;
+    const visibleDistance = this.isLoopTrack ? normalizeDistance(centerTrack, rival.distance) : rival.distance;
     if (!rival.active || rival.distance < 0) {
       rival.sprite.setVisible(false);
       return;
     }
 
-    if (rival.distance > totalLength + RIVAL_FINISH_CLEARANCE) {
+    if (rival.distance > this.raceDistance + RIVAL_FINISH_CLEARANCE) {
       rival.active = false;
       rival.sprite.setVisible(false);
       return;
     }
 
     rival.sprite.setVisible(true);
-    const laneOffset = getRivalLaneOffsetAtDistance(centerTrack, rival.distance, rival.laneOffset);
-    const point = getOffsetPointAtDistance(centerTrack, rival.distance, laneOffset);
+    const laneOffset = getRivalLaneOffsetAtDistance(centerTrack, visibleDistance, rival.laneOffset);
+    const point = getOffsetPointAtDistance(centerTrack, visibleDistance, laneOffset);
     rival.sprite.setPosition(point.x, point.y);
 
     let desiredHeading = point.heading;
@@ -1063,18 +1123,22 @@ class RaceScene extends Phaser.Scene {
       checkpoint.label.setText("OK");
       checkpoint.label.setColor("#b6ffd0");
       this.nextCheckpointIndex += 1;
-      ui.checkpoints.textContent = `${this.nextCheckpointIndex} / ${this.checkpoints.length}`;
-      setMessage(`Checkpoint ${this.nextCheckpointIndex} confirmado.`);
+      this.updateProgressHud();
+      if (this.isLoopTrack && this.nextCheckpointIndex >= this.checkpoints.length) {
+        setMessage(`Checkpoints completos. Cierra la vuelta ${this.currentLap}/${this.totalLaps} en la linea de meta.`);
+      } else {
+        setMessage(`Checkpoint ${this.nextCheckpointIndex} confirmado.`);
+      }
     }
   }
 
   updateRacePosition(playerProgress = this.playerRaceProgress) {
-    const normalizedPlayerProgress = clamp(playerProgress, 0, this.trackPath.totalLength + RIVAL_FINISH_CLEARANCE);
+    const normalizedPlayerProgress = clamp(playerProgress, 0, this.raceDistance + RIVAL_FINISH_CLEARANCE);
     this.playerRaceProgress = normalizedPlayerProgress;
 
     let place = 1;
     for (const rival of this.rivals) {
-      const rivalProgress = clamp(rival.distance, 0, this.trackPath.totalLength + RIVAL_FINISH_CLEARANCE);
+      const rivalProgress = clamp(rival.distance, 0, this.raceDistance + RIVAL_FINISH_CLEARANCE);
       if (rivalProgress > normalizedPlayerProgress + 1) {
         place += 1;
       }
@@ -1084,12 +1148,47 @@ class RaceScene extends Phaser.Scene {
     ui.position.textContent = formatRacePosition(this.finalPosition ?? this.playerPosition, this.totalRacers);
   }
 
-  handleFinish() {
+  handleFinish(nowMs) {
     if (this.nextCheckpointIndex < this.checkpoints.length) return;
-    const finish = track.path[track.path.length - 1];
-    const dist = Phaser.Math.Distance.Between(this.car.x, this.car.y, finish.x, finish.y);
-    if (dist > track.roadWidth * 0.44) return;
-    this.updateRacePosition(this.trackPath.totalLength);
+
+    if (this.isLoopTrack) {
+      const finishHit = pointToSegmentDistanceSquared(
+        this.car.x,
+        this.car.y,
+        this.finishGate.startX,
+        this.finishGate.startY,
+        this.finishGate.endX,
+        this.finishGate.endY
+      );
+
+      if (Math.sqrt(finishHit.distSq) > CHECKPOINT_DETECTION_RADIUS * 1.4) {
+        this.finishGateArmed = true;
+        return;
+      }
+
+      if (!this.finishGateArmed || nowMs - this.lastFinishTriggerAt < 900) return;
+
+      this.lastFinishTriggerAt = nowMs;
+      this.finishGateArmed = false;
+
+      if (this.currentLap < this.totalLaps) {
+        const completedLap = this.currentLap;
+        this.currentLap += 1;
+        this.playerRaceProgress = completedLap * this.trackPath.totalLength;
+        this.resetCheckpointState();
+        this.updateRacePosition(this.playerRaceProgress);
+        setMessage(`Vuelta ${completedLap}/${this.totalLaps} completada. Empieza la vuelta ${this.currentLap}.`);
+        return;
+      }
+
+      this.updateRacePosition(this.raceDistance);
+    } else {
+      const finish = track.path[track.path.length - 1];
+      const dist = Phaser.Math.Distance.Between(this.car.x, this.car.y, finish.x, finish.y);
+      if (dist > track.roadWidth * 0.44) return;
+      this.updateRacePosition(this.trackPath.totalLength);
+    }
+
     this.finalPosition = this.playerPosition;
     const effectiveTimeSec = Number(((this.timerMs + getPenaltyTimeMs(this.collisionCount)) / 1000).toFixed(2));
     const passedLimit = effectiveTimeSec <= query.limit;
@@ -1099,7 +1198,7 @@ class RaceScene extends Phaser.Scene {
       trackId: track.id,
       timeSec: effectiveTimeSec,
       hits: this.hits,
-      checkpoints: this.checkpoints.length,
+      checkpoints: this.checkpoints.length * this.totalLaps,
       position: this.finalPosition,
     };
 
@@ -1108,7 +1207,7 @@ class RaceScene extends Phaser.Scene {
     ui.position.textContent = formatRacePosition(this.finalPosition, this.totalRacers);
     setMessage(
       passedLimit
-        ? `Vuelta completada en ${effectiveTimeSec}s${this.collisionCount ? ` con ${this.collisionCount}s de penalidad` : ""}. Presiona Enviar transaccion para continuar.`
+        ? `Carrera completada en ${effectiveTimeSec}s${this.collisionCount ? ` con ${this.collisionCount}s de penalidad` : ""}. Presiona Enviar transaccion para continuar.`
         : `Tiempo final ${effectiveTimeSec}s. Necesitas ${query.limit}s o menos para desbloquear Run Race. Presiona Retry.`
     );
     this.updateOverlay("FINISH");
@@ -1142,7 +1241,11 @@ class RaceScene extends Phaser.Scene {
         this.state = "running";
         this.updateOverlay("");
         setStatus("RUN", "#76e59a");
-        setMessage("Acelera y completa los checkpoints antes de llegar a meta.");
+        setMessage(
+          this.isLoopTrack
+            ? `Acelera, completa los checkpoints y cierra ${this.totalLaps} vueltas.`
+            : "Acelera y completa los checkpoints antes de llegar a meta."
+        );
       }
     }
 
@@ -1196,7 +1299,10 @@ class RaceScene extends Phaser.Scene {
     }
     this.handleRivalCollisions(nowMs);
     this.resolveRivalBlocking();
-    this.updateRacePosition(roadState.distanceAlong);
+    const playerProgress = this.isLoopTrack
+      ? ((this.currentLap - 1) * this.trackPath.totalLength) + roadState.distanceAlong
+      : roadState.distanceAlong;
+    this.updateRacePosition(playerProgress);
 
     if (this.state === "running") {
       this.timerMs += delta;
@@ -1210,14 +1316,18 @@ class RaceScene extends Phaser.Scene {
         this.updateOverlay("TIME");
       } else {
         this.updateCheckpoints();
-        this.handleFinish();
+        this.handleFinish(nowMs);
       }
     }
 
     if (!onRoad && !this.wasOffroad && Math.abs(this.carState.speed) > 120) {
       this.hits += 1;
       this.wasOffroad = true;
-      setMessage(`Saliste de la pista. Recupera traccion y sigue hacia el checkpoint ${Math.min(this.nextCheckpointIndex + 1, this.checkpoints.length)}.`);
+      setMessage(
+        this.isLoopTrack
+          ? `Saliste de la pista. Recupera traccion y sigue hacia el checkpoint ${Math.min(this.nextCheckpointIndex + 1, this.checkpoints.length)} de la vuelta ${this.currentLap}.`
+          : `Saliste de la pista. Recupera traccion y sigue hacia el checkpoint ${Math.min(this.nextCheckpointIndex + 1, this.checkpoints.length)}.`
+      );
     } else if (onRoad) {
       this.wasOffroad = false;
     }
